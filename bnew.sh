@@ -426,7 +426,7 @@ function process_offline_archives() {
 
 #MAIN PART
 
-prepare_offline_bastion
+#prepare_offline_bastion
 echo "#gi-runner configuration file" > $file
 msg "This script must be executed from gi-runner home directory" 8
 msg "Checking OS release" 7

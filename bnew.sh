@@ -407,8 +407,8 @@ function prepare_offline_bastion() {
 
 function process_offline_archives() {
 	local archive
-	local archives=("os-Fedora_release_*" "coreos-registry-${ocp_release}.tar")
-	local descs=('Fedora files' "CoreOS ${ocp_release} image")
+	local archives=("os-Fedora_release_*" "coreos-registry-${ocp_release}.tar" "olm-registry-${major_ocp_release}*")
+	local descs=('Fedora files' "CoreOS ${ocp_release} image" "OLM images for CoreOS ${major_ocp_release}")
 	local i=0
 	for archive in ${archives[@]}
 	do

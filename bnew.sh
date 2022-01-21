@@ -416,7 +416,7 @@ function process_offline_archives() {
 		then
 			echo "OK"
 		else
-			error_msg="Cannot find the ${desc[$i]} archive, please copy to archive to ${gi_archives} directory and restart init.sh"
+			error_msg="Cannot find the ${descs[$i]} archive, please copy to archive to ${gi_archives} directory and restart init.sh"
 			display_error
 		fi
 

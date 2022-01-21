@@ -406,7 +406,7 @@ function prepare_offline_bastion() {
 }
 
 function extract_offline_archives() {
-
+	echo 1
 }
 
 #MAIN PART

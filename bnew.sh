@@ -410,7 +410,7 @@ function process_offline_archives() {
 	local archives=("os-Fedora_release_*" "coreos-registry-${ocp_release}.tar")
 	local descs=('Fedora files' "CoreOS\ ${ocp_release}\ image")
 	local i=0
-	for archive in $archives
+	for archive in ${archives[@]}
 	do
 		if [ -e ${gi_archives}/${archive} ] && [ $(ls ${gi_archives}/${archive}|wc -l) -eq 1 ]
 		then
@@ -437,6 +437,6 @@ get_network_installation_type
 msg "Deployment deicisons about the software and its releases to install" 7
 get_software_selection
 [[ "$use_air_gap" == 'Y' ]] && prepare_offline_bastion
-mkdir $GI_TEMP
+mkdir -p $GI_TEMP
 
 trap - EXIT

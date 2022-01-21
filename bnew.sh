@@ -33,7 +33,7 @@ function msg() {
 			;;
 		"9")     
 			printf "\e[31m----------------------------------------\n"
-			if [ "$1"]
+			if [ "$1" ]
 			then
 				printf "Error: $1\n"
 			else

@@ -419,9 +419,8 @@ function process_offline_archives() {
 			error_msg="Cannot find the ${descs[$i]} archive, please copy to archive to ${gi_archives} directory and restart init.sh"
 			display_error
 		fi
-
+		i=(($i+1))
 	done
-	
 }
 
 #MAIN PART

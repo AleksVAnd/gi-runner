@@ -417,8 +417,8 @@ function process_offline_archives() {
 	local archives=("os-Fedora_release_*" "coreos-registry-${ocp_release}.tar" "olm-registry-${major_ocp_release}*" "additions-registry-*")
 	local descs=('Fedora files' "CoreOS ${ocp_release} image" "OLM images for CoreOS ${major_ocp_release}" "Additional software images")
 	[ $storage_type == 'R' ] && { archives+=("rook-registry-${rook_version}.tar");descs+=("Rook-Ceph ${rook_version} images");}
-	[ $gi_install == 'Y' ] && { archives+=("gi_registry-${gi_version}.tar");descs+=("Guardium Insights ${gi_version} images");}
-	[[ $ics_install == 'Y' && $gi_install == 'N' ]] && { archives+=("ics_registry-${ics_version}.tar");descs+=("Common Services ${ics_version} images");}
+	[ $gi_install == 'Y' ] && { archives+=("gi_registry-${gi_versions[$gi_version_selected]}.tar");descs+=("Guardium Insights ${gi_versions[$gi_version_selected]}} images");}
+	[[ $ics_install == 'Y' && $gi_install == 'N' ]] && { archives+=("ics_registry-${ics_versions[$ics_version_selected]}}.tar");descs+=("Common Services ${ics_versions[$ics_version_selected]}} images");}
 	local i=0
 	for archive in ${archives[@]}
 	do

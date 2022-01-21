@@ -405,12 +405,20 @@ function prepare_offline_bastion() {
 	extract_offline_archives
 }
 
-function extract_offline_archives() {
-	echo 1
+function process_offline_archives() {
+	local archive
+	archives=("os-Fedora_release_*")
+	for archive in archives
+	do
+		ls -l ${gi_archives}/${archive}
+
+	done
+	
 }
 
 #MAIN PART
 
+process_offline_archives
 echo "#gi-runner configuration file" > $file
 msg "This script must be executed from gi-runner home directory" 8
 msg "Checking OS release" 7

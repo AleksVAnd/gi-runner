@@ -476,7 +476,7 @@ function process_offline_archives() {
 					else
 						display_error "Problem with extraction of archives, unknown archive type"
 					fi
-
+					;;
 				*)
 					display_error "Problem with extraction of archives, check their consitency"
 					;;

@@ -407,10 +407,18 @@ function prepare_offline_bastion() {
 
 function process_offline_archives() {
 	local archive
-	archives=("os-Fedora_release_*")
+	local archives=("os-Fedora_release_*")
+	local descs=('Fedora files')
+	local i=0
 	for archive in $archives
 	do
-		ls -l "${gi_archives}/${archive}"
+		if [[ -e ${gi_archives}/${archive} && $(ls ${gi_archives}/${archive}|wc -l) -eq 1 ]]
+		then
+			echo "OK"
+		else
+			error_msg="Cannot find the ${desc[$i]} archive, please copy to archive to ${gi_archives} directory and restart init.sh"
+			display_error
+		fi
 
 	done
 	

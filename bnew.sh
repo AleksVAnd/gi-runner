@@ -427,22 +427,22 @@ function process_offline_archives() {
 				0)
 					msg "Extracting Fedora software packages" 8
 					mkdir -p $GI_TEMP/os
-					tar -C $GI_TEMP/os -xf ${gi_archives}/$archive kernel.txt ansible/* galaxy/* os-packages/* os-updates/*
-					[ $? -ne 0 ] && display_error "Cannot extract content of operating system packages"
+					#tar -C $GI_TEMP/os -xf ${gi_archives}/$archive kernel.txt ansible/* galaxy/* os-packages/* os-updates/*
+					#[ $? -ne 0 ] && display_error "Cannot extract content of operating system packages"
 					;;
 				1)
 					msg "Extracting CoreOS images, OCP container images and tools" 8
 					mkdir -p /opt/registry $GI_TEMP/coreos
-					tar -C $GI_TEMP/coreos -xf $gi_archives/$archive oc-registry.tar openshift-client-linux.tar.gz openshift-install-linux.tar.gz rhcos-live-initramfs.x86_64.img rhcos-live-kernel-x86_64 rhcos-live-rootfs.x86_64.img opm-linux.tar.gz matchbox-v0.9.0-linux-amd64.tar.gz
-					tar -C /opt/registry -xf $gi_archives/coreos-registry-${ocp_release}.tar data/*
-                                        [ $? -ne 0 ] && display_error "Cannot extract content of CoreOS archive"
+					#tar -C $GI_TEMP/coreos -xf $gi_archives/$archive oc-registry.tar openshift-client-linux.tar.gz openshift-install-linux.tar.gz rhcos-live-initramfs.x86_64.img rhcos-live-kernel-x86_64 rhcos-live-rootfs.x86_64.img opm-linux.tar.gz matchbox-v0.9.0-linux-amd64.tar.gz
+					#tar -C /opt/registry -xf $gi_archives/coreos-registry-${ocp_release}.tar data/*
+                                        #[ $? -ne 0 ] && display_error "Cannot extract content of CoreOS archive"
                                         ;;
 				2)
 					msg "Extracting OLM container images" 8
 					mkdir -p $GI_TEMP/olm
-					tar -C $GI_TEMP/olm -xf $gi_archives/$archive manifests-*
-					tar -C /opt/registry -xf $gi_archives/$archive data/*
-                                        [ $? -ne 0 ] && display_error "Cannot extract content of OLM archive"
+					#tar -C $GI_TEMP/olm -xf $gi_archives/$archive manifests-*
+					#tar -C /opt/registry -xf $gi_archives/$archive data/*
+                                        #[ $? -ne 0 ] && display_error "Cannot extract content of OLM archive"
 					;;
 				3)
 					msg "Extracting additional container images, for instance openldap" 8
@@ -452,21 +452,21 @@ function process_offline_archives() {
 					[ $? -ne 0 ] && display_error "Cannot extract content of archive with additional images"
                                         ;;
 				4|5|6)
-					if [ $archive =~ ^rook.*$ ]
+					if [ "$archive" == rook-registry-${rook_version}.tar ]
 					then
 						msg "Extracting Rook-Ceph container images" 8
 						mkdir -p $GI_TEMP/rook
 						tar -C $GI_TEMP/rook -xf $gi_archives/$archive rook_images_sha
 						tar -C /opt/registry -xf $gi_archives/$archive data/*
 						[ $? -ne 0 ] && display_error "Cannot extract content of Rook-Ceph archive"
-					elif [ $archive =~ ^gi_registry.*$ ]
+					elif [ "$archive" == gi_registry-${gi_versions[$gi_version_selected]}.tar ]
 					then
 						msg "Extracting Guardium Insights container images" 8
                                                 mkdir -p $GI_TEMP/gi_arch
 						tar -C $GI_TEMP/gi_arch -xf $gi_archives/$archive cloudctl-linux-amd64.tar.gz gi_offline/*
                                                 tar -C /opt/registry -xf $gi_archives/$archive data/*
                                                 [ $? -ne 0 ] && display_error "Cannot extract content of Guardium Insights archive"
-					elif [ $archive =~ ^gi_registry.*$ ]
+					elif [ "$archive" == ics_registry-${ics_versions[$ics_version_selected]}}.tar ]
 					then
 						msg "Extracting Common Services container images" 8
                                                 mkdir -p $GI_TEMP/ics_arch

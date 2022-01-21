@@ -412,7 +412,7 @@ function process_offline_archives() {
 	local i=0
 	for archive in $archives
 	do
-		if [[ -e ${gi_archives}/${archive} && $(ls ${gi_archives}/${archive}|wc -l) -eq 1 ]]
+		if [ -e ${gi_archives}/${archive} ] && [ $(ls ${gi_archives}/${archive}|wc -l) -eq 1 ]
 		then
 			echo "OK"
 		else

@@ -252,6 +252,9 @@ function check_input() {
 		"es")
                         [[ $2 == 'E' || $2 == 'S' ]] && echo false || echo true
                         ;;
+		"sto")
+                        [[ $2 == 'O' || $2 == 'R' ]] && echo false || echo true
+                        ;;
 		"list")
                         if [[ $2 == +([[:digit:]]) ]]
                         then
@@ -358,6 +361,10 @@ function get_input() {
                         	fi
 			fi
                         ;;
+		"sto")
+                        read input_variable
+                        $3 && input_variable=${input_variable:-R} || input_variable=${input_variable:-O}
+                        ;;
 		*)
 			display_error "Error"
 	esac
@@ -407,8 +414,11 @@ function prepare_offline_bastion() {
 
 function process_offline_archives() {
 	local archive
-	local archives=("os-Fedora_release_*" "coreos-registry-${ocp_release}.tar" "olm-registry-${major_ocp_release}*")
-	local descs=('Fedora files' "CoreOS ${ocp_release} image" "OLM images for CoreOS ${major_ocp_release}")
+	local archives=("os-Fedora_release_*" "coreos-registry-${ocp_release}.tar" "olm-registry-${major_ocp_release}*" "additions-registry-*")
+	local descs=('Fedora files' "CoreOS ${ocp_release} image" "OLM images for CoreOS ${major_ocp_release}" "Additional software images")
+	[ $storage_type == 'R' ] && { archives+=("rook-registry-${rook_version}.tar"); descs+=("Rook-Ceph ${rook_version} images")}
+	[ $gi_install == 'Y' ] && { archives+=("gi_registry-${gi_version}.tar"); descs+=("Guardium Insights ${gi_version} images")}
+	[[ $ics_install == 'Y' && $gi_install == 'N' ]] && { archives+=("ics_registry-${ics_version}.tar"); descs+=("Common Services ${ics_version} images")}
 	local i=0
 	for archive in ${archives[@]}
 	do
@@ -423,6 +433,62 @@ function process_offline_archives() {
 	done
 }
 
+function get_software_architecture() {
+	msg "Some important architecture decisions and planned software deployment must be made now" 7
+        msg "OCP can be installed only on 3 nodes which create control and worker plane" 8
+        msg "This kind of architecture has some limitations:" 8
+        msg "- You cannot isolate storage on separate nodes" 8
+        msg "- You cannot isolate GI and CPFS" 8
+        while $(check_input "yn" ${is_master_only})
+        do
+                get_input "yn" "Is your installation the 3 nodes only? " true
+                is_master_only=${input_variable^^}
+        done
+        save_variable GI_MASTER_ONLY $is_master_only
+        msg "Decide what kind of cluster storage option will be implemented:" 8
+        msg "- OpenShift Container Storage - commercial rook-ceph branch from RedHat" 8
+        msg "- Rook-Ceph - opensource cluster storage option" 8
+        while $(check_input "sto" ${storage_type})
+        do
+                get_input "sto" "Choice the cluster storage type? (O)CS/(\e[4mR\e[0m)ook: " true
+                storage_type=${input_variable^^}
+        done
+        save_variable GI_STORAGE_TYPE $storage_type
+        if [[ $storage_type == "O" && $is_master_only == 'N' ]]
+        then
+                msg "OCS tainting will require minimum 3 additional workers in your cluster to manage cluster storage" 8
+                while $(check_input "yn" ${ocs_tainted})
+                do
+                        get_input "yn" "Should be OCS tainted? " true
+                        ocs_tainted=${input_variable^^}
+                done
+                save_variable GI_OCS_TAINTED $ocs_tainted
+        else
+                save_variable GI_OCS_TAINTED "N"
+        fi
+        if [[ $gi_install == "Y" ]]
+        then
+                while $(check_input "list" ${gi_size_selected} ${#gi_sizes[@]})
+                do
+                        get_input "list" "Select Guardium Insights deployment template: " "${gi_sizes[@]}"
+                        gi_size_selected=$input_variable
+                done
+                gi_size="${gi_sizes[$((${gi_size_selected} - 1))]}"
+                save_variable GI_SIZE_GI $gi_size
+        fi
+        if [[ $gi_install == "Y" && $is_master_only == 'N' ]]
+        then
+                msg "DB2 tainting will require additional workers in your cluster to manage Guardium Insights database backend" 8
+                while $(check_input "yn" ${db2_tainted})
+                do
+                        get_input "yn" "Should be DB2 tainted? " true
+                        db2_tainted=${input_variable^^}
+                done
+                save_variable GI_DB2_TAINTED $db2_tainted
+        fi
+}
+
+
 #MAIN PART
 
 #prepare_offline_bastion
@@ -435,6 +501,7 @@ msg "Deployment decisions with/without Internet Access" 7
 get_network_installation_type
 msg "Deployment deicisons about the software and its releases to install" 7
 get_software_selection
+get_software_architecture
 [[ "$use_air_gap" == 'Y' ]] && prepare_offline_bastion
 mkdir -p $GI_TEMP
 

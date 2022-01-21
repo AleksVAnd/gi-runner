@@ -408,9 +408,9 @@ function prepare_offline_bastion() {
 function process_offline_archives() {
 	local archive
 	archives=("os-Fedora_release_*")
-	for archive in archives
+	for archive in $archives
 	do
-		ls -l ${gi_archives}/${archive}
+		ls -l "${gi_archives}/${archive}"
 
 	done
 	
@@ -418,6 +418,7 @@ function process_offline_archives() {
 
 #MAIN PART
 
+prepare_offline_bastion
 process_offline_archives
 echo "#gi-runner configuration file" > $file
 msg "This script must be executed from gi-runner home directory" 8

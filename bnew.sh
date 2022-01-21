@@ -9,7 +9,7 @@ export MPID=$$
 . ./scripts/init.globals.sh
 
 function display_error() {
-	msg "$error_msg" 9
+	msg "$1" 9
 	trap - EXIT
 	kill -s TERM $MPID
 }
@@ -43,8 +43,7 @@ function msg() {
 			printf "\e[0m"
 			;;
 		*)
-			error_msg "msg with incorrect parameter - $2"
-			exit 1
+			display_error "msg with incorrect parameter - $2"
 			;;
 	esac
 }
@@ -56,8 +55,7 @@ function save_variable() {
 function check_bastion_os() {
         if [[ `hostnamectl|grep "Operating System"|awk -F ':' '{print $2}'|awk '{print $1}'` != 'Fedora' ]]
                 then
-                error_msg="Your bastion machine is not Fedora OS - please use the supported Operating System"
-		exit 1
+                display_error "Your bastion machine is not Fedora OS - please use the supported Operating System"
         else
                 msg "You use `hostnamectl|grep "Operating System"` - tested releases $fedora_supp_releases" 8
         fi
@@ -418,16 +416,25 @@ function process_offline_archives() {
 	local descs=('Fedora files' "CoreOS ${ocp_release} image" "OLM images for CoreOS ${major_ocp_release}" "Additional software images")
 	[ $storage_type == 'R' ] && { archives+=("rook-registry-${rook_version}.tar");descs+=("Rook-Ceph ${rook_version} images");}
 	[ $gi_install == 'Y' ] && { archives+=("gi_registry-${gi_versions[$gi_version_selected]}.tar");descs+=("Guardium Insights ${gi_versions[$gi_version_selected]}} images");}
-	[[ $ics_install == 'Y' && $gi_install == 'N' ]] && { archives+=("ics_registry-${ics_versions[$ics_version_selected]}}.tar");descs+=("Common Services ${ics_versions[$ics_version_selected]}} images");}
+	[[ $ics_install == 'Y' && $gi_install == 'N' ]] && { archives+=("ics_registry-${ics_versions[$ics_version_selected]}}.tar");descs+=("Common Services ${ics_versions[$ics_version_selected]} images");}
 	local i=0
 	for archive in ${archives[@]}
 	do
 		if [ -e ${gi_archives}/${archive} ] && [ $(ls ${gi_archives}/${archive}|wc -l) -eq 1 ]
 		then
-			echo "$archive"
+			case $i in
+				0)
+					mkdir -p $GI_TEMP/coreos
+					tar -C $GI_TEMP/coreos -xf ${gi_archives}/os*.tar kernel.txt ansible/* galaxy/* os-packages/* os-updates/*
+					[ $? -ne 0 ] && display_error "Cannot extract content of operating system packages" 
+					;;
+				*)
+					display_error "Problem with extraction of archives, check their consitency"
+					;;
+			esac
+
 		else
-			error_msg="Cannot find the ${descs[$i]} archive, please copy to archive to ${gi_archives} directory and restart init.sh"
-			display_error
+			display_error "Cannot find the ${descs[$i]} archive, please copy to archive to ${gi_archives} directory and restart init.sh"
 		fi
 		i=$(($i+1))
 	done

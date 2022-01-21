@@ -26,7 +26,7 @@ function msg() {
 			printf "\e[1m>>> $1"
 			;;
 		"7")
-			printf "\e[2mTASK:\e[22m \e[97m$1\n\e[0m"
+			printf "\e[34m\e[2mTASK:\e[22m $1\n\e[0m"
 			;;
 		"8")
 			printf "\e[2mINFO:\e[22m \e[97m$1\n\e[0m"
@@ -407,7 +407,8 @@ function prepare_offline_bastion() {
                         gi_archives="${input_variable}"
         done
         save_variable GI_ARCHIVES_DIR "'$gi_archives'"
-	process_offline_archives
+	#process_offline_archives
+	software_installation_on_offline
 }
 
 function process_offline_archives() {
@@ -544,6 +545,38 @@ function get_software_architecture() {
         fi
 }
 
+function software_installation_on_offline() {
+	local is_updated
+	msg "Update and installation of software packaged" 7
+	if [[ `uname -r` != `cat $GI_TEMP/os/kernel.txt` ]]
+        then
+                msg "Kernel of air-gap bastion differs from air-gap file generator!" 8
+                msg "In most cases the independent kernel update will lead to problems with system libraries" 8
+		while $(check_input "yn" ${is_updated})
+                do
+                        get_input "yn" "Have you updated system before, would you like to continue? " true
+                        is_updated=${input_variable^^}
+                done
+                if [ $is_updated != 'N' ]
+                then
+                        display_error "Upload air-gap files corresponding to bastion kernel or generate files for bastion environment"
+                fi
+        fi
+        msg  "Installing OS updates" 7
+        dnf -qy --disablerepo=* localinstall ${GI_TEMP}/os/os-updates/*rpm --allowerasing
+        msg "Installing OS packages" 7
+        dnf -qy --disablerepo=* localinstall ${GI_TEMP}/os/os-packages/*rpm --allowerasing
+        msg "Installing Ansible and python modules" 7
+        cd ${GI_TEMP}/os/ansible
+        pip3 install passlib-* --no-index --find-links '.' > /dev/null 2>&1
+        pip3 install dnspython-* --no-index --find-links '.' > /dev/null 2>&1
+        cd $GI_TEMP/os/galaxy
+        ansible-galaxy collection install community-general-3.3.2.tar.gz
+        cd $GI_HOME
+        mkdir -p /etc/ansible
+        echo -e "[bastion]\n127.0.0.1 ansible_connection=local" > /etc/ansible/hosts
+        msg "OS software update and installation successfully finished" 7
+}
 
 #MAIN PART
 

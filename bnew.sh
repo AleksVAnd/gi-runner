@@ -414,7 +414,7 @@ function process_offline_archives() {
 	do
 		if [ -e ${gi_archives}/${archive} ] && [ $(ls ${gi_archives}/${archive}|wc -l) -eq 1 ]
 		then
-			echo "OK"
+			echo "$archive"
 		else
 			error_msg="Cannot find the ${descs[$i]} archive, please copy to archive to ${gi_archives} directory and restart init.sh"
 			display_error

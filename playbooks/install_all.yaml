@@ -2,6 +2,7 @@
   vars:
     temp_dir: "../gi-temp"
     registry_version: "2.7.1"
+    matchbox_version: "0.9.0"
     internet_type:  "{{ lookup('env','GI_INTERNET_ACCESS') }}"
     domain:  "{{ lookup('env','GI_DOMAIN') }}"
     install_ldap:  "{{ lookup('env','GI_INSTALL_LDAP') }}"

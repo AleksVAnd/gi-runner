@@ -2,6 +2,7 @@
   vars:
     temp_dir: "../gi-temp"
     internet_type:  "{{ lookup('env','GI_INTERNET_ACCESS') }}"
+    domain:  "{{ lookup('env','GI_DOMAIN') }}"
 
 
   tasks:
@@ -10,6 +11,7 @@
       when: item.value == ""
       loop:
         - { name: "GI_INTERNET_ACCESS", value: "{{ internet_type }}" }
+        - { name: "GI_DOMAIN", value: "{{ domain }}" }
 
           
     - name: Setup bastion

@@ -119,4 +119,6 @@
 
     - name: Setup bastion
       include: setup_bastion.yaml
-      when: skip_phase|int > 0
+      when: skip_phase|int < 1
+
+

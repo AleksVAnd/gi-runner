@@ -231,7 +231,7 @@
 - name: Check original chrony config file existence
   stat:
     path: "/etc/chrony.conf.orig"
-    register: chrony_config_presence
+  register: chrony_config_presence
 
 - name: Restore original chrony config file
   copy:

@@ -1039,7 +1039,7 @@ function get_service_assignment() {
                 	msg "You decided that DB2 will be installed on dedicated nodes" 8
                 	msg "These nodes should not be used as storage cluster nodes" 8
 		fi
-                msg "Available worker nodes: $worker_name" true
+                msg "Available worker nodes: $worker_name" 8
                 while $(check_input "nodes" $db2_nodes $worker_name $db2_nodes_size "def")
                 do
                         if [ ! -z "$GI_DB2_NODES" ]

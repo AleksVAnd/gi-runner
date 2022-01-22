@@ -25,6 +25,9 @@ function msg() {
 		"2")
 			printf "\e[1m>>> $1"
 			;;
+		"6")
+			print "\e[32m\e[2mINFO:\e[22m $1\n\e[0m"
+			;;
 		"7")
 			printf "\e[34m\e[2mTASK:\e[22m $1\n\e[0m"
 			;;
@@ -1722,7 +1725,7 @@ function get_ldap_options() {
         done
         save_variable GI_LDAP_DOMAIN "'$ldap_domain'"
         msg "Provide list of users which will be created in OpenLDAP instance" 8
-        while $(check_input "user_list" "${ldap_users}" )
+        while $(check_input "users_list" "${ldap_users}" )
         do
                 if [ ! -z "$GI_LDAP_USERS" ]
                 then
@@ -1735,6 +1738,106 @@ function get_ldap_options() {
         save_variable GI_LDAP_USERS "'$ldap_users'"
 }
 
+function configure_os_for_proxy() {
+	msg "Configuring proxy settings" 7
+        msg "To support installation over Proxy some additional information must be gathered and bastion network services reconfiguration" 8
+        msg "HTTP Proxy IP address" 8
+        while $(check_input "ip" "${proxy_ip}")
+        do
+                if [[ ! -z "$GI_PROXY_URL" && "$GI_PROXY_URL" != "NO_PROXY" ]]
+                then
+                        local saved_proxy_ip=$(echo "$GI_PROXY_URL"|awk -F':' '{print $1}')
+                        get_input "txt" "Push <ENTER> to accept the previous choice [$saved_proxy_ip] or insert IP address of Proxy server: " true "$saved_proxy_ip"
+                else
+                        get_input "txt" "Insert IP address of Proxy server: " false
+                fi
+                        proxy_ip="${input_variable}"
+        done
+        msg "HTTP Proxy port" 8
+        while $(check_input "int" "${proxy_port}" 1024 65535)
+        do
+                if [[ ! -z "$GI_PROXY_URL" && "$GI_PROXY_URL" != "NO_PROXY" ]]
+                then
+                        local saved_proxy_port=$(echo "$GI_PROXY_URL"|awk -F':' '{print $2}')
+                        get_input "txt" "Push <ENTER> to accept the previous choice [$saved_proxy_port] or insert Proxy server port: " true "$saved_proxy_port"
+                else
+                        get_input "txt" "Insert Proxy server port: " false
+                fi
+                        proxy_port="${input_variable}"
+        done
+        msg "You can exclude from proxy redirection the access to the intranet subnets" 8
+        no_proxy="init_value"
+        while $(check_input "cidr_list" "${no_proxy}" true)
+        do
+                        get_input "txt" "Insert comma separated list of CIDRs (like 192.168.0.0/24) which should not be proxied (do not need provide here cluster addresses): " false
+                        no_proxy="${input_variable}"
+        done
+        no_proxy="127.0.0.1,*.apps.$ocp_domain,*.$ocp_domain,$no_proxy"
+        msg "Your proxy settings are:" 8
+        msg "Proxy URL: http://$proxy_ip:$proxy_port" 8
+        msg "System will not use proxy for: $no_proxy" 8
+        msg "Setting your HTTP proxy environment on bastion" 8
+        msg "- Modyfying /etc/profile" 8
+        cp -f /etc/profile /etc/profile.gi_no_proxy
+        if [[ `cat /etc/profile | grep "export http_proxy=" | wc -l` -ne 0 ]]
+        then
+                sed -i "s/^export http_proxy=.*/export http_proxy=\"http:\/\/$proxy_ip:$proxy_port\"/g" /etc/profile
+        else
+                echo "export http_proxy=\"http://$proxy_ip:$proxy_port\"" >> /etc/profile
+        fi
+        if [[ `cat /etc/profile | grep "export https_proxy=" | wc -l` -ne 0 ]]
+        then
+                sed -i "s/^export https_proxy=.*/export https_proxy=\"http:\/\/$proxy_ip:$proxy_port\"/g" /etc/profile
+        else
+                echo "export https_proxy=\"http://$proxy_ip:$proxy_port\"" >> /etc/profile
+        fi
+        if [[ `cat /etc/profile | grep "export ftp_proxy=" | wc -l` -ne 0 ]]
+        then
+                sed -i "s/^export ftp_proxy=.*/export ftp_proxy=\"$proxy_ip:$proxy_port\"/g" /etc/profile
+        else
+                echo "export ftp_proxy=\"$proxy_ip:$proxy_port\"" >> /etc/profile
+        fi
+        if [[ `cat /etc/profile | grep "export no_proxy=" | wc -l` -ne 0 ]]
+        then
+                sed -i "s/^export no_proxy=.*/export no_proxy=\"$no_proxy\"/g" /etc/profile
+        else
+                echo "export no_proxy=\"$no_proxy\"" >> /etc/profile
+        fi
+        msg "- Add proxy settings to DNF config file" 8
+        cp -f /etc/dnf/dnf.conf /etc/dnf/dnf.conf.gi_no_proxy
+        if [[ `cat /etc/dnf/dnf.conf | grep "proxy=" | wc -l` -ne 0 ]]
+        then
+                sed -i "s/^proxy=.*/proxy=http:\/\/$proxy_ip:$proxy_port/g" /etc/dnf/dnf.conf
+        else
+                echo "proxy=http://$proxy_ip:$proxy_port" >> /etc/dnf/dnf.conf
+        fi
+        save_variable GI_NOPROXY_NET "$no_proxy"
+        save_variable GI_PROXY_URL "$proxy_ip:$proxy_port"
+}
+
+function unset_proxy_settings() {
+	msg "Configuring proxy settings" 7
+        if [[ -f /etc/profile.gi_no_proxy ]]
+        then
+                mv -f /etc/profile.gi_no_proxy /etc/profile
+        fi
+        if [[ -f /etc/dnf/dnf.conf.gi_no_proxy ]]
+        then
+                mv -f /etc/dnf/dnf.conf.gi_no_proxy /etc/dnf/dnf.conf
+        fi
+        save_variable GI_PROXY_URL "NO_PROXY"
+}
+
+function create_cluster_ssh_key() {
+        msg "Add a new RSA SSH key" 7
+        cluster_id=$(mktemp -u -p ~/.ssh/ cluster_id_rsa.XXXXXXXXXXXX)
+        msg "*** Cluster key: ~/.ssh/${cluster_id}, public key: ~/.ssh/${cluster_id}.pub ***" 8
+        ssh-keygen -N '' -f ${cluster_id} -q <<< y > /dev/null
+        echo -e "Host *\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile=/dev/null" > ~/.ssh/config
+        cat ${cluster_id}.pub >> /root/.ssh/authorized_keys
+        save_variable GI_SSH_KEY "${cluster_id}"
+        msg "Save SSH keys names: ${cluster_id} and ${cluster_id}.pub, each init.sh execution create new key with random name" 8
+}
 
 
 #MAIN PART
@@ -1760,7 +1863,7 @@ get_nodes_info 1 "boot"
 msg "Collecting Control Plane nodes data (IP and MAC addres, name), values must beinserted as comma separated list without spaces" 7
 get_nodes_info 3 "mst"
 get_worker_nodes
-#software_installation_on_online
+software_installation_on_online
 get_set_services
 get_hardware_info
 get_service_assignment
@@ -1772,4 +1875,23 @@ get_certificates
 [[ "$gi_install" == 'Y' ]] && save_variable GI_ICS_OPERANDS "N,N,Y,Y,Y,N,N,N,N"
 [[ "$ics_install" == 'Y' && "$gi_install" == 'N' ]] && get_ics_options
 [[ "$install_ldap" == 'Y' ]] && get_ldap_options
+[[ $use_air_gap == 'N' && $use_proxy='P' ]] && configure_os_for_proxy || unset_proxy_settings
+create_cluster_ssh_key
+msg "========================================" 6
+msg "All information to deploy environment collected" 6
+if {LAST_KERNEL=$(rpm -q --last kernel | awk 'NR==1{sub(/kernel-/,""); print $1}'); CURRENT_KERNEL=$(uname -r); if [ $LAST_KERNEL != $CURRENT_KERNEL ]; then echo true; else echo false; fi;}
+then
+	msg "System reboot required because new kernel has been installed" 6
+	msg "Execute these commands after relogin to bastion:" 6
+	msg "- go to gi-runner home directory: \"cd $GI_HOME\"" 6
+	msg "- import variables: \". $file\"" 6
+        msg "- start first playbook: \"ansible-playbook playbooks/install_all.yaml\"" 6
+	read -p "Press enter to continue to reboot system"
+	#shutdown -r now
+else
+	msg "Execute commands below to continue:" 6
+	[[ $use_proxy == 'P' ]] &&  msg "- import PROXY settings: \". /etc/profile\"" 6
+	msg "- import variables: \". $file\"" 6
+	msg "- start first playbook: \"ansible-playbook playbooks/install_all.yaml\"" 6
+fi
 trap - EXIT

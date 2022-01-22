@@ -377,6 +377,32 @@ function check_input() {
                         timedatectl set-time "$2" 2>/dev/null
                         [[ $? -eq 0 ]] && echo false || echo true
                         ;;
+		"nodes")
+                        local element1
+                        local element2
+                        local i=0
+                        local node_arr
+                        local selected_arr
+                        IFS=',' read -r -a selected_arr <<< "$2"
+                        IFS=',' read -r -a node_arr <<< "$3"
+                        if [[ $(printf '%s\n' "${selected_arr[@]}"|sort|uniq -d|wc -l) -eq 0 ]]
+                        then
+                                for element1 in ${selected_arr[@]}; do for element2 in ${node_arr[@]}; do [[ "$element1" == "$element2" ]] && i=$(($i+1));done; done
+                                case $5 in
+                                        "max")
+                                                [ $i -ge $4 ] && echo false || echo true
+                                                ;;
+                                        "def")
+                                                [ $4 -eq $i ] && echo false || echo true
+                                                ;;
+                                        "*")
+                                                display_error "Incorrect nodes size specification"
+                                                ;;
+                                esac
+                        else
+                                echo true
+                        fi
+                        ;;
 		*)
 			display_error "Error incorrect check_input type"
 	esac
@@ -693,6 +719,7 @@ function software_installation_on_online() {
 }
 
 function get_ocp_domain() {
+	msg "Set cluster domain name" 7
         msg "Insert the OCP cluster domain name - it is local cluster, so it doesn't have to be registered as public one" 8
         while $(check_input "domain" ${ocp_domain})
         do
@@ -998,7 +1025,138 @@ function get_hardware_info() {
         save_variable GI_BOOT_DEVICE "$machine_disk"
 }
 
-
+function get_service_assignment() {
+	msg "Architecture decisions about service location on cluster nodes" 7
+        local selected_arr
+        local node_arr
+	local element
+	local rook_on_list
+        if [[ $gi_install == 'Y' ]]
+        then
+                [[ $gi_size == 'values-small' ]] && db2_nodes_size=2 || db2_nodes_size=1
+		if [[ $db2_tainted == 'Y' ]]
+		then
+                	msg "You decided that DB2 will be installed on dedicated nodes" 8
+                	msg "These nodes should not be used as storage cluster nodes" 8
+		fi
+                msg "Available worker nodes: $worker_name" true
+                while $(check_input "nodes" $db2_nodes $worker_name $db2_nodes_size "def")
+                do
+                        if [ ! -z "$GI_DB2_NODES" ]
+                        then
+                                get_input "txt" "Push <ENTER> to accept the previous choice [$GI_DB2_NODES] or specify $db2_nodes_size node/nodes (comma separated, without spaces)?: " true "$GI_DB2_NODES"
+                        else
+                                get_input "txt" "Specify $db2_nodes_size node/nodes (comma separated, without spaces)?: " false
+                        fi
+                        db2_nodes=${input_variable}
+                done
+                save_variable GI_DB2_NODES "$db2_nodes"
+                IFS=',' read -r -a selected_arr <<< "$db2_nodes"
+                IFS=',' read -r -a node_arr <<< "$worker_name"
+                if [[ "$db2_tainted" == 'N' ]]
+                then
+                        worker_wo_db2_name=$worker_name
+		else
+                	for element in ${selected_arr[@]};do node_arr=("${node_arr[@]/$element}");done
+                	worker_wo_db2_name=`echo ${node_arr[*]}|tr ' ' ','`
+                	workers_for_gi_selection=$worker_wo_db2_name
+                fi
+        fi
+        if [[ $storage_type == "R" && $is_master_only == "N" && ${#node_arr[@]} -gt 3 ]]
+        then
+                msg "You specified Rook-Ceph as cluster storage" 8
+                msg "You can force to deploy it on strictly defined node list" 8
+                msg "Only disks from specified nodes will be configured as cluster storage" 8
+                while $(check_input "yn" $rook_on_list false)
+                do
+                        get_input "yn" "Would you like to install Rook-Ceph on strictly specified nodes?: " true
+                        rook_on_list=${input_variable^^}
+                done
+                if [ "$rook_on_list" == 'Y' ]
+                then
+                        msg "Available worker nodes: $worker_wo_db2_name" 8
+                        while $(check_input "nodes" $rook_nodes $worker_wo_db2_name 3 "def")
+                        do
+                                if [ ! -z "$GI_ROOK_NODES" ]
+                                then
+                                        get_input "txt" "Push <ENTER> to accept the previous choice [$GI_ROOK_NODES] or specify 3 nodes (comma separated, without spaces)?: " true "$GI_ROOK_NODES"
+                                else
+                                        get_input "txt" "Specify 3 nodes (comma separated, without spaces)?: " false
+                                fi
+                                rook_nodes=${input_variable}
+                        done
+                fi
+        fi
+	save_variable GI_ROOK_NODES "$rook_nodes"
+        if [[ $ics_install == "Y" && $is_master_only == "N" && ${#node_arr[@]} -gt 3 ]]
+        then
+                msg "You can force to deploy ICS on strictly defined node list" 8
+                while $(check_input "yn" $ics_on_list false)
+                do
+                        get_input "yn" "Would you like to install ICS on strictly specified nodes?: " true
+                        ics_on_list=${input_variable^^}
+                done
+                if [ "$ics_on_list" == 'Y' ]
+                then
+                        msg "Available worker nodes: $worker_wo_db2_name" 8
+                        while $(check_input $ics_nodes "nodes" $worker_wo_db2_name 3 "def")
+                        do
+                                if [ ! -z "$GI_ICS_NODES" ]
+                                then
+                                        get_input "txt" "Push <ENTER> to accept the previous choice [$GI_ICS_NODES] or specify 3 nodes (comma separated, without spaces)?: " true "$GI_ICS_NODES"
+                                else
+                                        get_input "txt" "Specify 3 nodes (comma separated, without spaces)?: " false
+                                fi
+                                ics_nodes=${input_variable}
+                        done
+                fi
+        fi
+        save_variable GI_ICS_NODES "$ics_nodes"
+        if [ "$gi_install" == 'Y' ]
+        then
+                IFS=',' read -r -a worker_arr <<< "$worker_name"
+                if [[ ( $db2_tainted == 'Y' && ${#node_arr[@]} -gt 3 ) ]] || [[ ( $db2_tainted == 'N' && "$gi_size" == "values-small" && ${#worker_arr[@]} -gt 5 ) ]] || [[ ( $db2_tainted == 'N' && "$gi_size" == "values-dev" && ${#worker_arr[@]} -gt 4 ) ]]
+                then
+                        msg "You can force to deploy GI on strictly defined node list" 8
+                        while $(check_input "yn" $gi_on_list false)
+                        do
+                                get_input "yn" "Would you like to install GI on strictly specified nodes?: " true
+                                gi_on_list=${input_variable^^}
+                        done
+                fi
+                if [[ $db2_tainted == 'Y' && ${#node_arr[@]} -gt 3 ]]
+                then
+                        no_nodes_2_select=3
+                else
+                        [ "$gi_size" == "values-small" ] && no_nodes_2_select=1 || no_nodes_2_select=2
+                fi
+                if [ "$gi_on_list" == 'Y' ]
+                then
+                        if [ ! -z "$GI_GI_NODES" ]
+                        then
+                                local previous_node_ar
+                                local current_selection
+                                IFS=',' read -r -a previous_node_arr <<< "$GI_GI_NODES"
+                                IFS=',' read -r -a db2_node_arr <<< "$db2_nodes"
+                                for element in ${db2_node_arr[@]};do previous_node_arr=("${previous_node_arr[@]/$element}");done
+                                current_selection=`echo ${previous_node_arr[*]}|tr ' ' ','`
+                        fi
+                        msg "DB2 node/nodes: $db2_nodes are already on the list included, additionally you must select minimum $no_nodes_2_select node/nodes from the list below:" 8
+                        msg "Available worker nodes: $workers_for_gi_selection" 8
+                        while $(check_input "nodes" $gi_nodes $workers_for_gi_selection $no_nodes_2_select "max")
+                        do
+                                if [ ! -z "$GI_GI_NODES" ]
+                                then
+                                        get_input "txt" "Push <ENTER> to accept the previous choice [$current_selection] or specify minimum $no_nodes_2_select node/nodes (comma separated, without spaces)?: " true "$current_selection"
+                                else
+                                        get_input "txt" "Specify minimum $no_nodes_2_select node/nodes (comma separated, without spaces)?: " false
+                                fi
+                                gi_nodes=${input_variable}
+                        done
+                fi
+        fi
+	save_variable GI_GI_NODES "${db2_nodes},$gi_nodes"
+}
 #MAIN PART
 
 echo "#gi-runner configuration file" > $file
@@ -1025,4 +1183,5 @@ get_worker_nodes
 #software_installation_on_online
 get_set_services
 get_hardware_info
+get_service_assignment
 trap - EXIT

@@ -100,7 +100,7 @@
         - { name: "GI_WORKER_NAME", value: "{{ worker_name }}" }
 
     - name: Iterates all workers in one array
-      vars:
+      set_fact:
         nodes: "{{ worker_name|default([])+ocs_name|default([]) }}"
         ips: "{{ worker_ip|default([])+ocs_ip|default([]) }}"
 

@@ -73,6 +73,22 @@
     permanent: yes
     state: enabled
 
+- name: Open ports on bastion
+  firewalld:
+    port: "{{ item.port }}/{{ item.type }}"
+    permanent: yes
+    immediate: yes
+    state: enabled
+  with_items:
+    - { port: "67-69", type: "udp" } #dhcp, bootp, tftp
+    - { port: "8080", type: "tcp" } #matchbox
+    - { port: "53", type: "udp" } #dns
+    - { port: "6443", type: "tcp" } #cluster API
+    - { port: "22623", type: "tcp" } #cluster API
+    - { port: "80", type: "tcp" } #cluster app access
+    - { port: "443", type: "tcp" } #cluster app access
+    - { port: "123", type: "udp" } #ntpd
+
 - name: Load image registry into local repository
   shell:
     cmd: "podman load -i {{ temp_dir }}/coreos/oc-registry.tar"
@@ -105,7 +121,7 @@
 - name: Check repository health
   shell:
     cmd: curl -u {{ repo_user }}:{{ repo_user_password }} -k https://registry.{{ domain }}:5000/v2/_catalog
-  warn: false
+    warn: false
   register: repo_status
   failed_when:
     - repo_status.rc != 0 or "\"ocp4/openshift4\"" not in repo_status.stdout

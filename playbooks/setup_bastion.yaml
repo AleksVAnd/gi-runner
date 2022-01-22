@@ -94,4 +94,137 @@
     cmd: ansible-galaxy collection install community.general
   when: install_ldap == 'Y' and internet_type != 'A'
 
+- name: Cleanup configuration files
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  with_items:
+    - { path: "/etc/systemd/system/matchbox.service" }
+    - { path: "/usr/local/bin/matchbox" }
+    - { path: "/var/lib/matchbox" }
+    - { path: "/var/lib/tftp" }
+    - { path: "../ocp" }
+
+- name: Set variable for public SSH key
+  shell: >
+    cat "{{ ssh_key }}.pub"
+  register: ssh_pub_key
+
+- name: Check original resolved.conf file existence
+  stat:
+    path: "/etc/systemd/resolved.conf.orig"
+  register: resolved_config_presence
+
+- name: Check original nsswitch.conf file existence
+  stat:
+    path: "/etc/nsswitch.conf.orig"
+  register: nsswitch_config_presence
+
+- name: Copy original nsswitch.conf file
+  copy:
+    src: "/etc/nsswitch.conf"
+    dest: "/etc/nsswitch.conf.orig"
+  when: nsswitch_config_presence.stat.exists == false
+
+- name: Restore original nsswitch.conf file
+  copy:
+    src: "/etc/nsswitch.conf.orig"
+    dest: "/etc/nsswitch.conf"
+  when: nsswitch_config_presence.stat.exists == true
+
+- name: Unlink resolv.conf
+  file:
+    path: "/etc/resolv.conf"
+    state: absent
+
+- name: Link resolv.conf
+  file:
+    src: "/run/systemd/resolve/resolv.conf"
+    dest: "/etc/resolv.conf"
+    state: link
+
+- name: Clean TFTP directory
+      file:
+        path: "/var/lib/tftp"
+        state: absent
+
+- name: Create TFTP directory
+  file:
+    path: "/var/lib/tftp"
+    state: directory
+    mode: '0755'
+
+- name: Add the user 'matchbox'
+  user:
+    name: matchbox
+
+- name: Clean matchbox directory
+  file:
+    path: "/var/lib/matchbox"
+    state: absent
+
+- name: Create Matchbox directories
+  file:
+    path: "{{ item.path }}"
+    state: directory
+    mode: "0755"
+    owner: matchbox
+    group: matchbox
+  with_items:
+    - { path: "/var/lib/matchbox" }
+    - { path: "/var/lib/matchbox/assets" }
+    - { path: "/var/lib/matchbox/groups" }
+    - { path: "/var/lib/matchbox/ignition" }
+    - { path: "/var/lib/matchbox/profiles" }
+
+- name: Check matchbox package presence
+  stat:
+    path: "{{ temp_dir }}/coreos/matchbox-{{ matchbox_version }}-linux-amd64.tar.gz"
+  register: matchbox_presence
+
+- name: Stop if matchbox not uploaded for air-gapped installation
+  fail:
+    msg: "Please upload matchbox to download directory"
+  when: internet_type == 'A' and matchbox_presence.stat.exists == false
+
+- name: Download matchbox
+  get_url:
+    url: "https://github.com/poseidon/matchbox/releases/download/{{ matchbox_version }}/matchbox-{{ matchbox_version }}-linux-amd64.tar.gz"
+    dest: "{{ temp_dir }}"
+    use_proxy: "{{ 'yes' if internet_type == 'P' else 'no' }}"
+  when: matchbox_presence.stat.exists == false and internet_type != 'A'
+
+- name: Unzip matchbox
+  command:
+    cmd: "tar zxf {{ temp_dir }}/coreos/matchbox-{{ matchbox_version }}-linux-amd64.tar.gz -C {{ temp_dir }}"
+  args:
+    warn: false
+
+- name: Copy matchbox to bin
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: 0755
+  with_items:
+    - { src: "{{ temp_dir }}/matchbox-v0.9.0-linux-amd64/matchbox", dest: "/usr/local/bin" }
+
+- name: Copy matchbox service file
+  copy:
+    src: "{{ temp_dir }}/matchbox-v0.9.0-linux-amd64/contrib/systemd/matchbox.service"
+    dest: "/etc/systemd/system/matchbox.service"
+    owner: root
+    mode: 0644
+
+- name: Start and enable matchbox
+  service:
+    name: matchbox
+    state: restarted
+    enabled: yes
+
+- name: Clean matchbox temp directory
+  file:
+    path: "{{ temp_dir }}/matchbox-v0.9.0-linux-amd64"
+    state: absent
 

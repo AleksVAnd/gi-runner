@@ -1350,9 +1350,9 @@ function get_credentials() {
         do
                 if [ ! -z "$GI_OCADMIN_PWD" ]
                 then
-                        get_input "pwd" "Push <ENTER> to accept the previous choice [$GI_OCADMIN_PWD] or insert OCP $ocp_admin user password" true "$GI_OCADMIN_PWD"
+                        get_input "pwd" "Push <ENTER> to accept the previous choice [$GI_OCADMIN_PWD] or insert OCP $ocp_admin user password: " true "$GI_OCADMIN_PWD"
                 else
-                        get_input "pwd" "Insert OCP $ocp_admin user password" false
+                        get_input "pwd" "Insert OCP $ocp_admin user password: " false
                 fi
                 ocp_password="${input_variable}"
         done
@@ -1365,9 +1365,9 @@ function get_credentials() {
                 do
                         if [ ! -z "$GI_ICSADMIN_PWD" ]
                         then
-                                get_input "pwd" "Push <ENTER> to accept the previous choice [$GI_ICSADMIN_PWD] or insert ICS admin user password" true "$GI_ICSADMIN_PWD"
+                                get_input "pwd" "Push <ENTER> to accept the previous choice [$GI_ICSADMIN_PWD] or insert ICS admin user password: " true "$GI_ICSADMIN_PWD"
                         else
-                                get_input "pwd" "Insert OCP admin user password" false
+                                get_input "pwd" "Insert ICS admin user password: " false
                         fi
                         ics_password="${input_variable}"
                 done
@@ -1380,14 +1380,137 @@ function get_credentials() {
                 do
                         if [ ! -z "$GI_LDAP_USERS_PWD" ]
                         then
-                                get_input "pwd" "Push <ENTER> to accept the previous choice [$GI_LDAP_USERS_PWD] or insert default LDAP users password" true "$GI_LDAP_USERS_PWD"
+                                get_input "pwd" "Push <ENTER> to accept the previous choice [$GI_LDAP_USERS_PWD] or insert default LDAP users password: " true "$GI_LDAP_USERS_PWD"
                         else
-                                get_input "pwd" "Insert default LDAP users password" false
+                                get_input "pwd" "Insert default LDAP users password: " false
                         fi
                         ldap_password="${input_variable}"
                 done
                 save_variable GI_LDAP_USERS_PWD "'$ldap_password'"
         fi
+}
+
+function get_certificates() {
+	msg "Collecting certificates information" 7
+        msg "You can replace self-signed certicates for UI's by providing your own created by trusted CA" 8
+        msg "Certificates must be uploaded to bastion to provide full path to them" 8
+        msg "CA cert, service cert and private key files must be stored separately in PEM format" 8
+        while $(check_input "yn" "$ocp_ext_ingress" false)
+        do
+                get_input "yn" "Would you like to install own certificates for OCP?: " true
+                ocp_ext_ingress=${input_variable^^}
+        done
+        save_variable GI_OCP_IN $ocp_ext_ingress
+        [ $ocp_ext_ingress == 'Y' ] && validate_certs "ocp"
+        if [[ "$gi_install" == 'Y' || "$ics_install" == 'Y' ]]
+        then
+                while $(check_input "yn" "$ics_ext_ingress" false)
+                do
+                        get_input "yn" "Would you like to install own certificates for ICP?: " true
+                        ics_ext_ingress=${input_variable^^}
+                done
+                save_variable GI_ICS_IN $ics_ext_ingress
+                [ $ics_ext_ingress == 'Y' ] && validate_certs "ics"
+        fi
+        if [[ "$gi_install" == 'Y' ]]
+        then
+                while $(check_input "yn" "$gi_ext_ingress" false)
+                do
+                        get_input "yn" "Would you like to install own certificates for GI?: " true
+                        gi_ext_ingress=${input_variable^^}
+                done
+                save_variable GI_IN $gi_ext_ingress
+                [ $gi_ext_ingress == 'Y' ] && validate_certs "gi"
+        fi
+}
+
+function validate_certs() {
+        local pre_value_ca
+        local pre_value_app
+        local pre_value_key
+        local ca_cert
+        local app_cert
+        local app_key
+        local label
+        local cert_info
+        case $1 in
+                "ocp")
+                        label="OCP"
+                        cert_info="$label certificate must have ASN (Alternate Subject Name) set to \"*.apps.${ocp_domain}\""
+                        pre_value_ca="$GI_OCP_IN_CA"
+                        pre_value_app="$GI_OCP_IN_CERT"
+                        pre_value_key="$GI_OCP_IN_KEY"
+                        ;;
+                "ics")
+                        label="ICS"
+                        cert_info="$label certificate must have ASN (Alternate Subject Name) set to \"cp-console.apps.${ocp_domain}\""
+                        pre_value_ca="$GI_ICS_IN_CA"
+                        pre_value_app="$GI_ICS_IN_CERT"
+                        pre_value_key="$GI_ICS_IN_KEY"
+                        ;;
+                "gi")
+                        label="GI"
+                        cert_info="$label certificate must have ASN (Alternate Subject Name) set to \"insights.apps.${ocp_domain}\""
+                        pre_value_ca="$GI_IN_CA"
+                        pre_value_app="$GI_IN_CERT"
+                        pre_value_key="$GI_IN_KEY"
+                        ;;
+                "*")
+                        display_error "Unknown cert information"
+                        ;;
+        esac
+	while $(check_input "cert" "${ca_cert}" "ca")
+        do
+                if [ ! -z "$pre_value_ca" ]
+                then
+                        get_input "txt" "Push <ENTER> to accept the previous choice [$pre_value_ca] or insert the full path to root CA of $label certificate" true "$pre_value_ca"
+                else
+                        get_input "txt" "Insert the full path to root CA of $label certificate: " false
+                fi
+                ca_cert="${input_variable}"
+        done
+        msg "$cert_info" 8
+        while $(check_input "cert" "${app_cert}" "app" "$ca_cert")
+        do
+                if [ ! -z "$pre_value_app" ]
+                then
+                        get_input "txt" "Push <ENTER> to accept the previous choice [$pre_value_app] or insert the full path to $label certificate" true "$pre_value_app"
+                else
+                        get_input "txt" "Insert the full path to $label certificate: " false
+                fi
+                app_cert="${input_variable}"
+        done
+        while $(check_input "cert" "${app_key}" "key" "$app_cert")
+        do
+                if [ ! -z "$pre_value_key" ]
+                then
+                        get_input "txt" "Push <ENTER> to accept the previous choice [$pre_value_key] or insert the full path to $label private key" true "$pre_value_key"
+                else
+                        get_input "txt" "Insert the full path to $label private key: " false
+                fi
+                app_key="${input_variable}"
+        done
+
+        case $1 in
+                "ocp")
+                        save_variable GI_OCP_IN_CA "$ca_cert"
+                        save_variable GI_OCP_IN_CERT "$app_cert"
+                        save_variable GI_OCP_IN_KEY "$app_key"
+                        ;;
+                "ics")
+                        save_variable GI_ICS_IN_CA "$ca_cert"
+                        save_variable GI_ICS_IN_CERT "$app_cert"
+                        save_variable GI_ICS_IN_KEY "$app_key"
+                        ;;
+                "gi")
+                        save_variable GI_IN_CA "$ca_cert"
+                        save_variable GI_IN_CERT "$app_cert"
+                        save_variable GI_IN_KEY "$app_key"
+                        ;;
+                "*")
+                        display_error "Unknown cert information"
+                        ;;
+        esac
 }
 
 #MAIN PART
@@ -1420,4 +1543,5 @@ get_service_assignment
 get_cluster_storage_info
 get_inter_cluster_info
 get_credentials
+get_certificates
 trap - EXIT

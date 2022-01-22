@@ -406,7 +406,7 @@ function check_input() {
 		"cidr")
                         if [[ "$2" =~  ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\/[0-9]{1,2}$ ]]
                         then
-                                ( ! $(check_input `echo "$2"|awk -F'/' '{print $1}'` "ip") && ! $(check_input `echo "$2"|awk -F'/' '{print $2}'` "int" 8 22) ) && echo false || echo true
+                                ( ! $(check_input "ip" `echo "$2"|awk -F'/' '{print $1}'`) && ! $(check_input "int" `echo "$2"|awk -F'/' '{print $2}'` 8 22) ) && echo false || echo true
                         else
                                 echo true
                         fi
@@ -426,7 +426,7 @@ function check_input() {
                                         IFS=',' read -r -a cidr_arr <<< "$2"
                                         for cidr in "${cidr_arr[@]}"
                                         do
-                                                check_input "$cidr" "cidr" && result=true
+                                                check_input "cidr" "$cidr" && result=true
                                         done
                                         echo $result
                                 fi

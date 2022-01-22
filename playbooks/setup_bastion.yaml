@@ -102,6 +102,15 @@
   shell:
     cmd: semanage permissive -a NetworkManager_t
 
+- name: Check repository health
+  shell:
+    cmd: curl -u {{ repo_user }}:{{ repo_user_password }} -k https://registry.{{ domain }}:5000/v2/_catalog
+  warn: false
+  register: repo_status
+  failed_when:
+    - repo_status.rc != 0 or "\"ocp4/openshift4\"" not in repo_status.stdout
+  when: internet_type == 'A'
+
 - name: Install ansible galaxy packages
   shell:
     cmd: ansible-galaxy collection install community.general

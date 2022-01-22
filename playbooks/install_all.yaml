@@ -1,8 +1,11 @@
 - hosts: bastion
   vars:
     temp_dir: "../gi-temp"
+    registry_version: "2.7.1"
     internet_type:  "{{ lookup('env','GI_INTERNET_ACCESS') }}"
     domain:  "{{ lookup('env','GI_DOMAIN') }}"
+    install_ldap:  "{{ lookup('env','GI_INSTALL_LDAP') }}"
+
 
 
   tasks:
@@ -12,6 +15,7 @@
       loop:
         - { name: "GI_INTERNET_ACCESS", value: "{{ internet_type }}" }
         - { name: "GI_DOMAIN", value: "{{ domain }}" }
+        - { name: "GI_INSTALL_LDAP", value: "{{ install_ldap }}" }
 
     - name: Set parameters for air-gapped installation
       set_fact:

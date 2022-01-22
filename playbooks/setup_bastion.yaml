@@ -1,4 +1,4 @@
-     - name: Create portable registry directories
+    - name: Create portable registry directories
       file:
         path: "{{ item.path }}"
         state: directory

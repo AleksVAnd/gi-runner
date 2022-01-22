@@ -428,6 +428,7 @@ function get_input() {
 			else 
 				if [ "$password" == "" ]
 				then
+					curr_password="$GI_REPO_USER_PWD"
 					input_variable=true
 				else
                         		read -s -p ">>> Insert password again: " password2
@@ -963,9 +964,43 @@ function get_set_services() {
         save_variable GI_DHCP_RANGE_STOP `printf '%s\n' "${all_ips[@]}"|sort -t . -k 3,3n -k 4,4n|tail -n1`
 }
 
+function get_hardware_info() {
+	msg "Collecting hardware information" 7
+        msg "Automatic CoreOS and storage deployment requires information about NIC and HDD devices" 8
+        msg "There is assumption that all cluster nodes including bootstrap machine use this isame HW specification" 8
+        msg "The Network Interface Card (NIC) device specification must provide the one of interfaces attached to each cluster node and connected to cluster subnet" 8
+        msg "In most cases the first NIC attached to machine will have on Fedora and RedHat the name \"ens192\"" 8
+        while $(check_input "txt" "${machine_nic}" 2)
+        do
+                if [ ! -z "$GI_NETWORK_INTERFACE" ]
+                then
+                        get_input "txt" "Push <ENTER> to accept the previous choice [$GI_NETWORK_INTERFACE] or insert NIC specification: " true "$GI_NETWORK_INTERFACE"
+                else
+                        get_input "txt" "Insert NIC specification: " false
+                fi
+                machine_nic="${input_variable}"
+        done
+        save_variable GI_NETWORK_INTERFACE "$machine_nic"
+        msg "There is assumption that all cluster machines use this device specification for boot disk" 8
+        msg "In most cases the first boot disk will have specification \"sda\" or \"nvmne0\"" 8
+        msg "The inserted value refers to root path located in /dev" 8
+        msg "It means that value sda refers to /dev/sda" 8
+        while $(check_input "txt" "${machine_disk}" 2)
+        do
+                if [ ! -z "$GI_BOOT_DEVICE" ]
+                then
+                        get_input "txt" "Push <ENTER> to accept the previous choice [$GI_BOOT_DEVICE] or insert boot disk specification: " true "$GI_BOOT_DEVICE"
+                else
+                        get_input "txt" "Insert boot disk specification: " false
+                fi
+                machine_disk="${input_variable}"
+        done
+        save_variable GI_BOOT_DEVICE "$machine_disk"
+}
+
+
 #MAIN PART
 
-#prepare_offline_bastion
 echo "#gi-runner configuration file" > $file
 msg "This script must be executed from gi-runner home directory" 8
 msg "Checking OS release" 7
@@ -989,4 +1024,5 @@ get_nodes_info 3 "mst"
 get_worker_nodes
 #software_installation_on_online
 get_set_services
+get_hardware_info
 trap - EXIT

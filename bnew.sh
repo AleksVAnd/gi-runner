@@ -620,7 +620,7 @@ function prepare_offline_bastion() {
                         gi_archives="${input_variable}"
         done
         save_variable GI_ARCHIVES_DIR "'$gi_archives'"
-	#process_offline_archives
+	process_offline_archives
 	software_installation_on_offline
 }
 
@@ -641,22 +641,22 @@ function process_offline_archives() {
 				0)
 					msg "Extracting Fedora software packages" 8
 					mkdir -p $GI_TEMP/os
-					#tar -C $GI_TEMP/os -xf ${gi_archives}/$archive kernel.txt ansible/* galaxy/* os-packages/* os-updates/*
-					#[ $? -ne 0 ] && display_error "Cannot extract content of operating system packages"
+					tar -C $GI_TEMP/os -xf ${gi_archives}/$archive kernel.txt ansible/* galaxy/* os-packages/* os-updates/*
+					[ $? -ne 0 ] && display_error "Cannot extract content of operating system packages"
 					;;
 				1)
 					msg "Extracting CoreOS images, OCP container images and tools" 8
 					mkdir -p /opt/registry $GI_TEMP/coreos
-					#tar -C $GI_TEMP/coreos -xf $gi_archives/$archive oc-registry.tar openshift-client-linux.tar.gz openshift-install-linux.tar.gz rhcos-live-initramfs.x86_64.img rhcos-live-kernel-x86_64 rhcos-live-rootfs.x86_64.img opm-linux.tar.gz matchbox-v0.9.0-linux-amd64.tar.gz
-					#tar -C /opt/registry -xf $gi_archives/coreos-registry-${ocp_release}.tar data/*
-                                        #[ $? -ne 0 ] && display_error "Cannot extract content of CoreOS archive"
+					tar -C $GI_TEMP/coreos -xf $gi_archives/$archive oc-registry.tar openshift-client-linux.tar.gz openshift-install-linux.tar.gz rhcos-live-initramfs.x86_64.img rhcos-live-kernel-x86_64 rhcos-live-rootfs.x86_64.img opm-linux.tar.gz matchbox-v0.9.0-linux-amd64.tar.gz
+					tar -C /opt/registry -xf $gi_archives/coreos-registry-${ocp_release}.tar data/*
+                                        [ $? -ne 0 ] && display_error "Cannot extract content of CoreOS archive"
                                         ;;
 				2)
 					msg "Extracting OLM container images" 8
 					mkdir -p $GI_TEMP/olm
-					#tar -C $GI_TEMP/olm -xf $gi_archives/$archive manifests-*
-					#tar -C /opt/registry -xf $gi_archives/$archive data/*
-                                        #[ $? -ne 0 ] && display_error "Cannot extract content of OLM archive"
+					tar -C $GI_TEMP/olm -xf $gi_archives/$archive manifests-*
+					tar -C /opt/registry -xf $gi_archives/$archive data/*
+                                        [ $? -ne 0 ] && display_error "Cannot extract content of OLM archive"
 					;;
 				3)
 					msg "Extracting additional container images, for instance openldap" 8
@@ -1877,7 +1877,6 @@ get_certificates
 [[ $use_air_gap == 'N' && $use_proxy='P' ]] && configure_os_for_proxy || unset_proxy_settings
 [[ "$use_air_gap" == 'N' ]] && software_installation_on_online
 create_cluster_ssh_key
-msg "========================================" 6
 msg "All information to deploy environment collected" 6
 if LAST_KERNEL=$(rpm -q --last kernel | awk 'NR==1{sub(/kernel-/,""); print $1}'); CURRENT_KERNEL=$(uname -r); if [ $LAST_KERNEL != $CURRENT_KERNEL ]; then true; else false; fi;
 then
@@ -1887,7 +1886,7 @@ then
 	msg "- import variables: \". $file\"" 6
         msg "- start first playbook: \"ansible-playbook playbooks/install_all.yaml\"" 6
 	read -p "Press enter to continue to reboot system"
-	#shutdown -r now
+	shutdown -r now
 else
 	msg "Execute commands below to continue:" 6
 	[[ $use_proxy == 'P' ]] &&  msg "- import PROXY settings: \". /etc/profile\"" 6

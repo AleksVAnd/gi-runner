@@ -1,0 +1,6 @@
+- hosts: bastion
+  vars:
+    temp_dir: "../gi-temp"
+
+
+  tasks:

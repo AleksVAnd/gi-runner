@@ -8,6 +8,10 @@
     install_ldap:  "{{ lookup('env','GI_INSTALL_LDAP') }}"
     ssh_key:  "{{ lookup('env','GI_SSH_KEY') }}"
     bas_ip:  "{{ lookup('env','GI_BASTION_IP') }}"
+    ntp_server:  "{{ lookup('env','GI_NTP_SRV') }}"
+    ocp_release:  "{{ lookup('env','GI_OCP_RELEASE') }}"
+    ocp_major_release: "{{ ocp_release.split('.')[:-1]|join('.') }}"
+    ocp_minor_release: "{{ ocp_release.split('.')[-1] }}"
 
 
 
@@ -22,6 +26,8 @@
         - { name: "GI_INSTALL_LDAP", value: "{{ install_ldap }}" }
         - { name: "GI_SSH_KEY", value: "{{ ssh_key }}" }
         - { name: "GI_BASTION_IP", value: "{{ bas_ip }}" }
+        - { name: "GI_NTP_SRV", value: "{{ ntp_server }}" }
+        - { name: "GI_OCP_RELEASE", value: "{{ ocp_release }}" }
 
     - name: Set parameters for air-gapped installation
       set_fact:

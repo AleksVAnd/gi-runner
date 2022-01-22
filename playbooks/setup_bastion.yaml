@@ -1,3 +1,16 @@
+- name: Create temp subdirectories
+  file:
+    path: "{{ item.path }}"
+    state: directory
+  with_items:
+    - { path: "{{ temp_dir }}/coreos" }
+    - { path: "{{ temp_dir }}/adds" }
+    - { path: "{{ temp_dir }}/os" }
+    - { path: "{{ temp_dir }}/rook" }
+    - { path: "{{ temp_dir }}/olm" }
+    - { path: "{{ temp_dir }}/ics_arch" }
+    - { path: "{{ temp_dir }}/gi_arch" }
+
 - name: Create portable registry directories
   file:
     path: "{{ item.path }}"
@@ -266,3 +279,40 @@
     state: restarted
     enabled: yes
   when: ntp_server == bas_ip
+
+- name: Check presence of RHCOS images
+  stat:
+    path: "{{ temp_dir }}/coreos/{{ item.file }}"
+  register: rhcos_images
+  with_items:
+    - { file: "rhcos-live-initramfs.x86_64.img" }
+    - { file: "rhcos-live-kernel-x86_64" }
+    - { file: "rhcos-live-rootfs.x86_64.img" }
+  ignore_errors: true
+
+- name: Stop if RHCOS images are not uploaded for air-gapped installation
+  fail:
+    msg: "Please upload RHCOS images to download directory"
+    with_items: "{{ rhcos_images.results }}"
+  when: item.stat.exists == False and internet_type == 'A'
+
+- name: Download RHCOS images {{ ocp_major_release }}
+  get_url:
+    url: https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/{{ ocp_major_release }}/latest/{{ item.item.file }}
+    dest: "{{ temp_dir }}/coreos"
+    use_proxy: "{{ 'yes' if internet_type == 'P' else 'no' }}"
+  with_items: "{{ rhcos_images.results }}"
+  when: item.stat.exists == False and internet_type != 'A'
+
+- name: Copy RHCOS images to matchbox assets
+  file:
+    src: "{{ temp_dir }}/coreos/{{ item.name }}"
+    dest: "/var/lib/matchbox/assets/{{ item.name }}"
+    owner: matchbox
+    group: matchbox
+    state: hard
+  with_items:
+    - { name: "rhcos-live-initramfs.x86_64.img" }
+    - { name: "rhcos-live-kernel-x86_64" }
+    - { name: "rhcos-live-rootfs.x86_64.img" }
+

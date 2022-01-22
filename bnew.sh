@@ -1863,7 +1863,6 @@ get_nodes_info 1 "boot"
 msg "Collecting Control Plane nodes data (IP and MAC addres, name), values must beinserted as comma separated list without spaces" 7
 get_nodes_info 3 "mst"
 get_worker_nodes
-software_installation_on_online
 get_set_services
 get_hardware_info
 get_service_assignment
@@ -1876,6 +1875,7 @@ get_certificates
 [[ "$ics_install" == 'Y' && "$gi_install" == 'N' ]] && get_ics_options
 [[ "$install_ldap" == 'Y' ]] && get_ldap_options
 [[ $use_air_gap == 'N' && $use_proxy='P' ]] && configure_os_for_proxy || unset_proxy_settings
+[[ "$use_air_gap" == 'N' ]] && software_installation_on_online
 create_cluster_ssh_key
 msg "========================================" 6
 msg "All information to deploy environment collected" 6

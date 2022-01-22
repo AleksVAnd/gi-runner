@@ -425,3 +425,133 @@
   with_together:
     - "{{ master_name+worker_name|default([])+ocs_name|default([]) }}"
     - "{{ master_ip+worker_ip|default([])+ocs_ip|default([]) }}"
+
+- name: Check original dnsmasq config file existence
+  stat:
+    path: "/etc/dnsmasq.conf.orig"
+  register: dnsmasq_config_presence
+
+- name: Restore original dnsmasq config file
+  copy:
+    src: "/etc/dnsmasq.conf.orig"
+    dest: "/etc/dnsmasq.conf"
+  when: dnsmasq_config_presence.stat.exists == true
+
+- name: Copy original NIC config file
+  copy:
+    src: "/etc/dnsmasq.conf"
+    dest: "/etc/dnsmasq.conf.orig"
+  when: dnsmasq_config_presence.stat.exists == false
+
+- name: Modify dnsmasq.conf file
+  lineinfile:
+    path: /etc/dnsmasq.conf
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  with_items:
+    - { regexp: '^#interface=', line: 'interface={{ bas_int }}' }
+
+- name: Add lines to dnsmasq.conf
+  lineinfile:
+    path: /etc/dnsmasq.conf
+    line: "{{ item }}"
+  with_items:
+    - "#Gateway"
+    - "dhcp-option=2,7200"
+    - "dhcp-option=3,{{ bas_gw }}"
+    - "dhcp-option=42,{{ ntp_server }}"
+    - "#DNS"
+    - "dhcp-option=6,{{ bas_ip }}"
+    - "dhcp-range={{ dhcp_range_start }},{{ dhcp_range_stop }},12h"
+    - "dhcp-host={{ boot_mac }},{{ boot_ip }},12h"
+    - "domain={{ domain }}"
+    - "#Static DNS"
+    - "address=/{{ bas_name }}.{{ domain }}/{{ bas_ip }}"
+    - "address=/registry.{{ domain }}/{{ bas_ip }}"
+    - "address=/{{ boot_name }}.{{ domain }}/{{ boot_ip }}"
+    - "ptr-record={{ boot_ptr.stdout }},{{ boot_name }}.{{ domain }}"
+    - "ptr-record={{ bas_ptr.stdout }},{{ bas_name }}.{{ domain }}"
+    - "address=/matchbox.{{ domain }}/{{ bas_ip }}"
+    - "address=/api.{{ domain }}/{{ bas_ip }}"
+    - "address=/api-int.{{ domain }}/{{ bas_ip }}"
+    - "address=/.apps.{{ domain }}/{{ bas_ip }}"
+    - "#TFTP"
+    - "enable-tftp"
+    - "tftp-root=/var/lib/tftp"
+    - "tftp-secure"
+    - "dhcp-match=set:bios,option:client-arch,0"
+    - "dhcp-boot=tag:bios,undionly.kpxe"
+    - "dhcp-match=set:efi32,option:client-arch,6"
+    - "dhcp-boot=tag:efi32,ipxe.efi"
+    - "dhcp-match=set:efibc,option:client-arch,7"
+    - "dhcp-boot=tag:efibc,ipxe.efi"
+    - "dhcp-match=set:efi64,option:client-arch,9"
+    - "dhcp-boot=tag:efi64,ipxe.efi"
+    - "dhcp-userclass=set:ipxe,iPXE"
+    - "dhcp-boot=tag:ipxe,http://matchbox.{{ domain }}:8080/boot.ipxe"
+
+- name: Add  PTR lines to dnsmasq.conf
+  lineinfile:
+    path: /etc/dnsmasq.conf
+    line: "{{ item.stdout }}"
+  with_items: "{{ node_ptr.results }}"
+
+- name: Add DHCP lines to dnsmasq.conf
+  lineinfile:
+    path: /etc/dnsmasq.conf
+    line: "{{ item.stdout }}"
+  with_items: "{{ node_dhcp.results }}"
+
+- name: Add DNS lines to dnsmasq.conf
+  lineinfile:
+    path: /etc/dnsmasq.conf
+    line: "{{ item.stdout }}"
+  with_items: "{{ node_dns.results }}"
+
+- name: Add DNS forwarder to dnsmasq.conf
+  lineinfile:
+    path: /etc/dnsmasq.conf
+    line: "server={{ dns_forwarder }}"
+
+- name: Get bastion interface name
+  shell:
+    cmd: nmcli c show | grep ens192 | awk '{print $1}'
+  register: bas_int_name
+
+- name: Set self DNS for interface
+  command:
+    cmd: "{{ item }}"
+  with_items:
+    - "nmcli c modify {{ bas_int_name.stdout }} ipv4.dns \"{{ bas_ip }}\""
+
+- name: Start and enable dnsmasq
+  service:
+    name: dnsmasq
+    state: restarted
+    enabled: yes
+
+- name: Restart systemd-resolved
+  service:
+    name: systemd-resolved
+    state: restarted
+
+- name: Restart Network Manager
+  service:
+    name: NetworkManager
+    state: restarted
+
+- name: Resolve some cluster names to check DNS state
+  debug:
+    msg:
+      - "Resolve IP of {{ bas_name }}.{{ domain }} - {{ lookup('dig', '{{ bas_name }}.{{ domain }}.', '@127.0.0.1') }}"
+      - "Resolve IP of registry.{{ domain }} - {{ lookup('dig', 'registry.{{ domain }}.', '@127.0.0.1') }}"
+      - "Resolve IP of {{ boot_name }}.{{ domain }} - {{ lookup('dig', '{{ boot_name }}.{{ domain }}.', '@127.0.0.1') }}"
+      - "Resolve IP of api.{{ domain }} - {{ lookup('dig', 'api.{{ domain }}.', '@127.0.0.1') }}"
+      - "Resolve IP of api-int.{{ domain }} - {{ lookup('dig', 'api-int.{{ domain }}.', '@127.0.0.1') }}"
+      - "Resolve IP of insights.apps.{{ domain }} - {{ lookup('dig', 'insights.apps.{{ domain }}.', '@127.0.0.1') }}"
+      - "Resolve name from IP for {{ boot_ip }} - {{ lookup('dig', '{{ boot_ptr.stdout }}./PTR', '@127.0.0.1') }}"
+
+- name: Set SELINUX for dnsmasq
+  shell:
+    cmd: semanage permissive -a dnsmasq_t
+

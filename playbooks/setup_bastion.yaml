@@ -293,7 +293,7 @@
 - name: Stop if RHCOS images are not uploaded for air-gapped installation
   fail:
     msg: "Please upload RHCOS images to download directory"
-    with_items: "{{ rhcos_images.results }}"
+  with_items: "{{ rhcos_images.results }}"
   when: item.stat.exists == False and internet_type == 'A'
 
 - name: Download RHCOS images {{ ocp_major_release }}
@@ -315,4 +315,80 @@
     - { name: "rhcos-live-initramfs.x86_64.img" }
     - { name: "rhcos-live-kernel-x86_64" }
     - { name: "rhcos-live-rootfs.x86_64.img" }
+
+- name: prepare TFTP for iPXE
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: dnsmasq
+    group: dnsmasq
+    mode: 0644
+  with_items:
+    - { src: "/usr/share/ipxe/undionly.kpxe", dest: "/var/lib/tftp" }
+    - { src: "/usr/share/ipxe/ipxe-i386.efi", dest: "/var/lib/tftp" }
+    - { src: "/usr/share/ipxe/ipxe-x86_64.efi", dest: "/var/lib/tftp" }
+
+- name: Matchbox bootstrap group json
+  vars:
+    id: "{{ item.id }}"
+    name: "{{ item.name }}"
+    profile: "{{ item.profile }}"
+    mac: "{{ item.mac }}"
+  template:
+    src: "groups.j2"
+    dest: "/var/lib/matchbox/groups/{{ item.id }}.json"
+  with_items:
+    - { id: "bootstrap", name: "Bootstrap node", profile: "bootstrap", mac: "{{ boot_mac }}" }
+
+- name: Matchbox masters group json
+  template:
+    src: "groups.j2"
+    dest: "/var/lib/matchbox/groups/{{ id }}.{{ mac }}.json"
+  vars:
+    id: "master"
+    name: "OCP master"
+    profile: "master"
+    mac: "{{ item }}"
+  with_items:
+    - "{{ master_mac|list }}"
+
+- name: Matchbox ocs group json
+  template:
+    src: "groups.j2"
+    dest: "/var/lib/matchbox/groups/{{ id }}.{{ mac }}.json"
+  vars:
+    id: "worker"
+    name: "OCP worker"
+    profile: "worker"
+    mac: "{{ item }}"
+  with_items:
+    - "{{ ocs_mac|list }}"
+  when: is_ocs_tainted == 'Y'
+
+- name: Matchbox worker group json
+  template:
+    src: "groups.j2"
+    dest: "/var/lib/matchbox/groups/{{ id }}.{{ mac }}.json"
+  vars:
+    id: "worker"
+    name: "OCP worker"
+    profile: "worker"
+    mac: "{{ item }}"
+  with_items:
+    - "{{ worker_mac|list }}"
+  when: is_master_only == 'N'
+
+- name: Matchbox profiles files
+  vars:
+    id: "{{ item.id }}"
+    name: "{{ item.name }}"
+    ign_file: "{{ item.ign_file }}"
+    dom: "{{ item.dom }}"
+  template:
+    src: "profile.j2"
+    dest: "/var/lib/matchbox/profiles/{{ item.id }}.json"
+  with_items:
+    - { id: "bootstrap", name: "Bootstrap node", ign_file: "bootstrap.ign", dom: "{{ domain }}" }
+    - { id: "master", name: "OCP master", ign_file: "master.ign", dom: "{{ domain }}" }
+    - { id: "worker", name: "OCP worker", ign_file: "worker.ign", dom: "{{ domain }}" }
 

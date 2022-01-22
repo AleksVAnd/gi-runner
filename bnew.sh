@@ -403,6 +403,35 @@ function check_input() {
                                 echo true
                         fi
                         ;;
+		"cidr")
+                        if [[ "$2" =~  ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\/[0-9]{1,2}$ ]]
+                        then
+                                ( ! $(check_input `echo "$2"|awk -F'/' '{print $1}'` "ip") && ! $(check_input `echo "$2"|awk -F'/' '{print $2}'` "int" 8 22) ) && echo false || echo true
+                        else
+                                echo true
+                        fi
+                        ;;
+                "cidr_list")
+                        local cidr_arr
+                        local cidr
+                        if $3 && [ -z "$2" ]
+                        then
+                                echo false
+                        else
+                                if [ -z "$2" ] || $(echo "$2" | egrep -q "[[:space:]]" && echo true || echo false)
+                                then
+                                        echo true
+                                else
+                                        local result=false
+                                        IFS=',' read -r -a cidr_arr <<< "$2"
+                                        for cidr in "${cidr_arr[@]}"
+                                        do
+                                                check_input "$cidr" "cidr" && result=true
+                                        done
+                                        echo $result
+                                fi
+                        fi
+                        ;;
 		*)
 			display_error "Error incorrect check_input type"
 	esac
@@ -450,11 +479,10 @@ function get_input() {
                         echo
 			if [ "$password" == "" ] && $3
 			then
-				curr_password=$password;input_variable=false
+				curr_password="$4";input_variable=false
 			else 
 				if [ "$password" == "" ]
 				then
-					curr_password="$GI_REPO_USER_PWD"
 					input_variable=true
 				else
                         		read -s -p ">>> Insert password again: " password2
@@ -1157,6 +1185,69 @@ function get_service_assignment() {
         fi
 	save_variable GI_GI_NODES "${db2_nodes},$gi_nodes"
 }
+
+function get_cluster_storage_info() {
+	msg "Cluster storage information" 7
+        msg "There is assumption that all storage cluster node use this same device specification for storage disk" 8
+        msg "In most cases the second boot disk will have specification \"sdb\" or \"nvmne1\"" 8
+        msg "The inserted value refers to root path located in /dev" 8
+        msg "It means that value sdb refers to /dev/sdb" 8
+        while $(check_input "txt" "${storage_device}" 2)
+        do
+                if [ ! -z "$GI_STORAGE_DEVICE" ]
+                then
+                        get_input "txt" "Push <ENTER> to accept the previous choice [$GI_STORAGE_DEVICE] or insert cluster storage disk device specification: " true "$GI_STORAGE_DEVICE"
+                else
+                        get_input "txt" "Insert cluster storage disk device specification: " false
+                fi
+                storage_device="${input_variable}"
+        done
+        save_variable GI_STORAGE_DEVICE "$storage_device"
+        msg "Cluster storage devices ($storage_device)  must be this same size on all storage nodes!" 8
+        msg "The minimum size of each disk is 100 GB" 8
+        while $(check_input "int" "${storage_device_size}" 100 10000000)
+        do
+                if [ ! -z "$GI_STORAGE_DEVICE_SIZE" ]
+                then
+                        get_input "txt" "Push <ENTER> to accept the previous choice [$GI_STORAGE_DEVICE_SIZE] or insert cluster storage disk device size (in GB): " true "$GI_STORAGE_DEVICE_SIZE"
+                        storage_device_size="$GI_STORAGE_DEVICE_SIZE"
+                else
+                        get_input "txt" "Insert cluster storage disk device size (in GB): " false
+                fi
+                storage_device_size="${input_variable}"
+        done
+        save_variable GI_STORAGE_DEVICE_SIZE "$storage_device_size"
+}
+
+function get_inter_cluster_info() {
+	msg "Inter-node cluster pod communication" 7
+        msg "Pods in cluster communicate with one another using private network, use non-default values only if your physical network use IP address space 10.128.0.0/16" 8
+        while $(check_input "cidr" "${ocp_cidr}")
+        do
+                if [ ! -z "$GI_OCP_CIDR" ]
+                then
+                        get_input "txt" "Push <ENTER> to accept the previous choice [$GI_OCP_CIDR] or insert cluster interconnect CIDR (IP/MASK): " true "$GI_OCP_CIDR"
+                else
+                        get_input "txt" "Insert cluster interconnect CIDR (default - 10.128.0.0/16): " true "10.128.0.0/16"
+                fi
+                ocp_cidr="${input_variable}"
+        done
+        save_variable GI_OCP_CIDR "$ocp_cidr"
+        cidr_subnet=$(echo "$ocp_cidr"|awk -F'/' '{print $2}')
+        msg "Each pod will reserve IP address range from subnet $ocp_cidr, provide this range using subnet mask (must be higher than $cidr_subnet)" 8
+        while $(check_input "int" "${ocp_cidr_mask}" $cidr_subnet 27)
+        do
+                if [ ! -z "$GI_OCP_CIDR_MASK" ]
+                then
+                        get_input "txt" "Push <ENTER> to accept the previous choice [$GI_OCP_CIDR_MASK] or insert pod IP address range (MASK): " true "$GI_OCP_CIDR_MASK"
+                else
+                        get_input "txt" "Insert pod IP address range (default - 23): " true 23
+                fi
+                ocp_cidr_mask="${input_variable}"
+        done
+        save_variable GI_OCP_CIDR_MASK "$ocp_cidr_mask"
+}
+
 #MAIN PART
 
 echo "#gi-runner configuration file" > $file
@@ -1184,4 +1275,6 @@ get_worker_nodes
 get_set_services
 get_hardware_info
 get_service_assignment
+get_cluster_storage_info
+get_inter_cluster_info
 trap - EXIT

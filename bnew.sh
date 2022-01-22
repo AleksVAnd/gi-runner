@@ -293,8 +293,92 @@ function check_input() {
 		"dir")
 			[ -d "$2" ] && echo false || echo true
 			;;
+		"domain")
+                        [[ $2 =~  ^([a-zA-Z0-9](([a-zA-Z0-9-]){0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$ ]] && echo false || echo true
+                        ;;
+		"ip")
+                        local ip
+                        if [[ $2 =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]
+                        then
+                                IFS='.' read -r -a ip <<< $2
+                                [[ ${ip[0]} -le 255 && ${ip[1]} -le 255 && ${ip[2]} -le 255 && ${ip[3]} -le 255 ]]
+                                [[ $? -eq 0 ]] && echo false || echo true
+                        else
+                                echo true
+                        fi
+                        ;;
+		"ips")
+                        local ip_value
+                        IFS=',' read -r -a master_ip_arr <<< $2
+                        if [[ ${#master_ip_arr[@]} -eq $3 && $(printf '%s\n' "${master_ip_arr[@]}"|sort|uniq -d|wc -l) -eq 0 ]]
+                        then
+                                local is_wrong=false
+                                for ip_value in "${master_ip_arr[@]}"
+                                do
+                                        $(check_input "ip" $ip_value) && is_wrong=true
+                                done
+                                echo $is_wrong
+                        else
+                                echo true
+                        fi
+                        ;;
+		"mac")
+                        [[ $2 =~ ^([a-fA-F0-9]{2}:){5}[a-fA-F0-9]{2}$ ]] && echo false || echo true
+                        ;;
+                "macs")
+                        local mac_value
+                        IFS=',' read -r -a master_mac_arr <<< $2
+                        if [[ ${#master_mac_arr[@]} -eq $3 && $(printf '%s\n' "${master_mac_arr[@]}"|sort|uniq -d|wc -l) -eq 0 ]]
+                        then
+                                local is_wrong=false
+                                for mac_value in "${master_mac_arr[@]}"
+                                do
+                                        $(check_input "mac" $mac_value) && is_wrong=true
+                                done
+                                echo $is_wrong
+                        else
+                                echo true
+                        fi
+                        ;;
+		"txt_list")
+                        local txt_value
+                        local txt_arr
+                        IFS=',' read -r -a txt_arr <<< $2
+                        if [[ ${#txt_arr[@]} -eq $3 ]]
+                        then
+                                local is_wrong=false
+                                for txt_value in "${txt_arr[@]}"
+                                do
+                                        [[ "$txt_value" =~ ^[a-zA-Z][a-zA-Z0-9_-]{0,}[a-zA-Z0-9]$ ]] || is_wrong=true
+                                done
+                                echo $is_wrong
+                        else
+                                echo true
+                        fi
+                        ;;
+		"int")
+                        if [[ $2 == +([[:digit:]]) ]]
+                        then
+                                [[ $2 -ge $3 && $2 -le $4 ]] && echo false || echo true
+                        else
+                                echo true
+                        fi
+                        ;;
+		"tz")
+                        if [[ "$2" =~ ^[a-zA-Z0-9_+-]{1,}/[a-zA-Z0-9_+-]{1,}$ ]]
+                        then
+                                timedatectl set-timezone "$2" 2>/dev/null
+                                [[ $? -eq 0 ]] && echo false || echo true
+                        else
+                                echo true
+                        fi
+                        ;;
+                "td")
+                        timedatectl set-time "$2" 2>/dev/null
+                        [[ $? -eq 0 ]] && echo false || echo true
+                        ;;
 		*)
-			display_error "Error"
+			display_error "Error incorrect check_input type"
 	esac
 }
 
@@ -362,6 +446,9 @@ function get_input() {
 		"sto")
                         read input_variable
                         $3 && input_variable=${input_variable:-R} || input_variable=${input_variable:-O}
+                        ;;
+		"int")
+                        read input_variable
                         ;;
 		*)
 			display_error "Error"
@@ -562,7 +649,7 @@ function software_installation_on_offline() {
                         display_error "Upload air-gap files corresponding to bastion kernel or generate files for bastion environment"
                 fi
         fi
-        msg  "Installing OS updates" 7
+        msg "Installing OS updates" 7
         dnf -qy --disablerepo=* localinstall ${GI_TEMP}/os/os-updates/*rpm --allowerasing
         msg "Installing OS packages" 7
         dnf -qy --disablerepo=* localinstall ${GI_TEMP}/os/os-packages/*rpm --allowerasing
@@ -575,7 +662,305 @@ function software_installation_on_offline() {
         cd $GI_HOME
         mkdir -p /etc/ansible
         echo -e "[bastion]\n127.0.0.1 ansible_connection=local" > /etc/ansible/hosts
-        msg "OS software update and installation successfully finished" 7
+        msg "OS software update and installation successfully finished" 8
+}
+
+function software_installation_on_online() {
+	msg "Update and installation of software packaged" 7
+	msg "Installing OS updates" 7
+        dnf -qy update
+        msg "Installing OS packages"
+        local soft=("tar" "ansible" "haproxy" "openldap" "perl" "podman-docker" "ipxe-bootimgs" "chrony" "dnsmasq" "unzip" "wget" "httpd-tools" "policycoreutils-python-utils" "python3-ldap" "openldap-servers" "openldap-clients" "pip" "skopeo")
+        for package in "${soft[@]}"
+        do
+                msg "- installing $package ..." 8
+                dnf -qy install $package &>/dev/null
+                [[ $? -ne 0 ]] && display_error "Cannot install $package"
+        done
+        msg "Installing Python packages" 7
+        local python_soft=("passlib" "dnspython" "beautifulsoup4")
+        for package in "${python_soft[@]}"
+        do
+                msg "- installing $package ..." 8
+                [[ $use_proxy == 'D' ]] && pip3 install "$package" || pip3 install "$package" --proxy http://$proxy_ip:$proxy_port
+                [[ $? -ne 0 ]] && display_error "Cannot install python package $package"
+        done
+        msg "Configuring Ansible" 7
+        mkdir -p /etc/ansible
+        [[ $use_proxy == 'P' ]] && echo -e "[bastion]\n127.0.0.1 \"http_proxy=http://$proxy_ip:$proxy_port\" https_proxy=\"http://$proxy_ip:$proxy_port\" ansible_connection=local" > /etc/ansible/hosts || echo -e "[bastion]\n127.0.0.1 ansible_connection=local" > /etc/ansible/hosts
+        echo "pullSecret: '$rhn_secret'" > ${GI_TEMP}/os/pull_secret.tmp
+}
+
+function get_ocp_domain() {
+        msg "Insert the OCP cluster domain name - it is local cluster, so it doesn't have to be registered as public one" 8
+        while $(check_input "domain" ${ocp_domain})
+        do
+                if [[ ! -z "$GI_DOMAIN" ]]
+                then
+                        get_input "txt" "Push <ENTER> to accept the previous choice [$GI_DOMAIN] or insert domain name: " true "$GI_DOMAIN"
+                else
+                        get_input "txt" "Insert domain name: " false
+                fi
+                ocp_domain=${input_variable}
+        done
+        save_variable GI_DOMAIN $ocp_domain
+}
+
+function get_bastion_info() {
+	msg "Collecting data about bastion" 7
+        msg "Provide IP address of network interface on bastion which is connected to this same subnet,vlan where the OCP nodes are located" 8
+        while $(check_input "ip" ${bastion_ip})
+        do
+                if [[ ! -z "$GI_BASTION_IP" ]]
+                then
+                        get_input "txt" "Push <ENTER> to accept the previous choice [$GI_BASTION_IP] or insert bastion IP: " true "$GI_BASTION_IP"
+                else
+                        get_input "txt" "Insert bastion IP: " false
+                fi
+                bastion_ip=${input_variable}
+        done
+        save_variable GI_BASTION_IP $bastion_ip
+        msg "Provide the hostname used to resolve bastion name by local DNS which will be set up" 8
+        while $(check_input "txt" ${bastion_name} 1)
+        do
+                if [[ ! -z "$GI_BASTION_NAME" ]]
+                then
+                        get_input "txt" "Push <ENTER> to accept the previous choice [$GI_BASTION_NAME] or insert bastion name: " true "$GI_BASTION_NAME"
+                else
+                        get_input "txt" "Insert bastion name: " false
+                fi
+                bastion_name=${input_variable}
+        done
+        save_variable GI_BASTION_NAME $bastion_name
+        msg "Provide the IP gateway of subnet where cluster node are located" 8
+        while $(check_input "ip" ${subnet_gateway})
+        do
+                if [[ ! -z "$GI_GATEWAY" ]]
+                then
+                        get_input "txt" "Push <ENTER> to accept the previous choice [$GI_GATEWAY] or insert IP address of default gateway: " true "$GI_GATEWAY"
+                else
+                        get_input "txt" "Insert IP address of default gateway: " false
+                fi
+                subnet_gateway=${input_variable}
+        done
+        save_variable GI_GATEWAY $subnet_gateway
+}
+
+function get_nodes_info() {
+        local temp_ip
+        local temp_mac
+        local temp_name
+        case $2 in
+                "ocs")
+                        local pl_names=("addresses" "names" "IP's" "hosts")
+                        local node_type="OCS nodes"
+                        local global_var_ip=$GI_OCS_IP
+                        local global_var_mac=$GI_OCS_MAC_ADDRESS
+                        local global_var_name=$GI_OCS_NAME
+                        ;;
+                "boot")
+                        local pl_names=("address" "name" "IP" "host")
+                        local node_type="bootstrap node"
+                        local global_var_ip=$GI_BOOTSTRAP_IP
+                        local global_var_mac=$GI_BOOTSTRAP_MAC_ADDRESS
+                        local global_var_name=$GI_BOOTSTRAP_NAME
+                        ;;
+                "mst")
+                        local pl_names=("addresses" "names" "IP's" "hosts")
+                        local node_type="master nodes"
+                        local global_var_ip=$GI_MASTER_IP
+                        local global_var_mac=$GI_MASTER_MAC_ADDRESS
+                        local global_var_name=$GI_MASTER_NAME
+                        ;;
+                "wrk")
+                        local pl_names=("addresses" "names" "IP's" "hosts")
+                        local node_type="worker nodes"
+                        local global_var_ip=$GI_WORKER_IP
+                        local global_var_mac=$GI_WORKER_MAC_ADDRESS
+                        local global_var_name=$GI_WORKER_NAME
+                        ;;
+                "*")
+                        exit 1
+	esac
+        msg "Insert $1 ${pl_names[2]} ${pl_names[0]} of $node_type, should be located in subnet with gateway - $subnet_gateway" 8
+        while $(check_input "ips" ${temp_ip} $1)
+        do
+                if [ ! -z "$global_var_ip" ]
+                then
+                        get_input "txt" "Push <ENTER> to accept the previous choice [$global_var_ip] or insert $node_type ${pl_names[2]}: " true "$global_var_ip"
+                else
+                        get_input "txt" "Insert $node_type IP: " false
+                fi
+                temp_ip=${input_variable}
+        done
+        msg "Insert $1 MAC ${pl_names[0]} of $node_type" 8
+        while $(check_input "macs" ${temp_mac} $1)
+        do
+                if [ ! -z "$global_var_mac" ]
+                then
+                        get_input "txt" "Push <ENTER> to accept the previous choice [$global_var_mac] or insert $node_type MAC ${pl_names[0]}: " true "$global_var_mac"
+                else
+                        get_input "txt" "Insert $node_type MAC ${pl_names[0]}: " false
+                fi
+                temp_mac=${input_variable}
+        done
+        msg "Insert $1 ${pl_names[3]} ${pl_names[1]} of $node_type" 8
+        while $(check_input "txt_list" ${temp_name} $1)
+        do
+                if [ ! -z "$global_var_name" ]
+                then
+                        get_input "txt" "Push <ENTER> to accept the previous choice [$global_var_name] or insert $node_type ${pl_names[1]}: " true "$global_var_name"
+                else
+                        get_input "txt" "Insert bootstrap ${pl_names[1]}: " false
+                fi
+                temp_name=${input_variable}
+        done
+	case $2 in
+                "ocs")
+                        ocs_ip=$temp_ip
+                        save_variable GI_OCS_IP $temp_ip
+                        save_variable GI_OCS_MAC_ADDRESS $temp_mac
+                        save_variable GI_OCS_NAME $temp_name
+                        ;;
+                "boot")
+                        boot_ip=$temp_ip
+                        save_variable GI_BOOTSTRAP_IP $temp_ip
+                        save_variable GI_BOOTSTRAP_MAC_ADDRESS $temp_mac
+                        save_variable GI_BOOTSTRAP_NAME $temp_name
+                        ;;
+                "mst")
+                        master_ip=$temp_ip
+                        save_variable GI_MASTER_IP $temp_ip
+                        save_variable GI_MASTER_MAC_ADDRESS $temp_mac
+                        save_variable GI_MASTER_NAME $temp_name
+                        ;;
+                "wrk")
+                        worker_ip=$temp_ip
+                        worker_name=$temp_name
+                        save_variable GI_WORKER_IP $temp_ip
+                        save_variable GI_WORKER_MAC_ADDRESS $temp_mac
+                        save_variable GI_WORKER_NAME $temp_name
+                        ;;
+                "*")
+                        display_error "Incorrect parameters get_node function"
+        esac
+}
+
+function get_worker_nodes() {
+        local worker_number=3
+        local inserted_worker_number
+        if [[ $is_master_only == 'N' ]]
+        then
+		msg "Collecting workers data" 7
+                if [[ $storage_type == 'O' && $ocs_tainted == 'Y' ]]
+                then
+			msg "Collecting OCS dedicated nodes data because OCS tainting has been chosen (IP and MAC addresses, node names), values inserted as comma separated list without spaces" 7
+                        get_nodes_info 3 "ocs"
+                fi
+                if [ $db2_tainted == 'Y' ]
+                then
+                        [ $gi_size == "values-small" ] && worker_number=$(($worker_number+2)) || worker_number=$(($worker_number+1))
+                fi
+                msg "Your cluster architecture decisions require to have minimum $worker_number additional workers" 8
+                while $(check_input "int" $inserted_worker_number $worker_number 50)
+                do
+                        get_input "int" "How many additional workers would you like to add to cluster?: " false
+                        inserted_worker_number=${input_variable}
+                done
+		msg "Collecting workers nodes data (IP and MAC addresses, node names), values inserted as comma separated list without spaces" 7
+                get_nodes_info $inserted_worker_number "wrk"
+        fi
+}
+
+function set_bastion_ntpd_client() {
+	msg "Set NTPD configuration" 7
+	sed -i "s/^pool .*/pool $1 iburst/g" /etc/chrony.conf
+        systemctl enable chronyd
+        systemctl restart chronyd
+}
+
+function get_set_services() {
+        local iz_tz_ok
+        local is_td_ok
+        local ntpd_server
+        local tzone
+        local tida
+        msg "Some additional questions allow to configure supporting services in your environment" 8
+	msg "Time settings" 7
+        msg "It is recommended to use existing NTPD server in the local intranet but you can also decide to setup bastion as a new one" 8
+        while $(check_input "yn" $install_ntpd false)
+        do
+                get_input "yn" "Would you like setup NTP server on bastion?: " false
+                install_ntpd=${input_variable^^}
+        done
+        if [[ $install_ntpd == 'N' ]]
+        then
+                timedatectl set-ntp true
+                while $(check_input "ip" ${ntp_server})
+                do
+                        if [ ! -z "$GI_NTP_SRV" ]
+                        then
+                                get_input "txt" "Push <ENTER> to accept the previous choice [$GI_NTP_SRV] or insert remote NTP server IP address: " true "$GI_NTP_SRV"
+                        else
+                                get_input "txt" "Insert remote NTP server IP address: " false
+                        fi
+                        ntpd_server=${input_variable}
+                done
+                save_variable GI_NTP_SRV $ntpd_server
+	else
+		ntpd_server=$bastion_ip
+		timedatectl set-ntp false
+        fi
+        set_bastion_ntpd_client "$ntpd_server"
+        msg "Ensure that TZ and corresponding time is set correctly" 7
+        while $(check_input "yn" $is_tz_ok)
+        do
+                get_input "yn" "Your Timezone on bastion is set to `timedatectl show|grep Timezone|awk -F '=' '{ print $2 }'`, is it correct one?: " false
+                is_tz_ok=${input_variable^^}
+        done
+        if [[ $is_tz_ok == 'N' ]]
+        then
+                while "tz" $(check_input ${tzone})
+                do
+                        get_input "txt" "Insert your Timezone in Linux format (i.e. Europe/Berlin): " false
+                        tzone=${input_variable}
+                done
+        fi
+        if [[ $install_ntpd == 'Y' ]]
+        then
+                save_variable GI_NTP_SRV $bastion_ip
+                msg "Ensure that date and time are set correctly" 7
+                while $(check_input "yn" $is_td_ok false)
+                do
+                        get_input "yn" "Current local time is `date`, is it correct one?: " false
+                        is_td_ok=${input_variable^^}
+                done
+                if [[ $is_td_ok == 'N' ]]
+                then
+                        while $(check_input "td" "${tida}")
+                        do
+                                get_input "txt" "Insert correct date and time in format \"2012-10-30 18:17:16\": " false
+                                tida="${input_variable}"
+                        done
+                fi
+	fi
+	msg "DNS settings" 7
+        msg "Provide the DNS which will able to resolve intranet and internet names" 8
+        msg "In case of air-gapped installation you can point bastion itself but cluster will not able to resolve intranet names, in this case you must later update manually dnsmasq.conf settings" 8
+        while $(check_input "ip" ${dns_fw})
+        do
+                if [ ! -z "$GI_DNS_FORWARDER" ]
+                then
+                        get_input "txt" "Push <ENTER> to accept the previous choice [$GI_DNS_FORWARDER] or insert DNS server IP address: " true "$GI_DNS_FORWARDER"
+                else
+                        get_input "txt" "Insert DNS IP address: " false
+                fi
+                dns_fw=${input_variable}
+        done
+        save_variable GI_DNS_FORWARDER $dns_fw
+        IFS=',' read -r -a all_ips <<< `echo $boot_ip","$master_ip","$ocs_ip",$worker_ip"|tr -s ',,' ','|sed 's/,[[:blank:]]*$//g'`
+        save_variable GI_DHCP_RANGE_START `printf '%s\n' "${all_ips[@]}"|sort -t . -k 3,3n -k 4,4n|head -n1`
+        save_variable GI_DHCP_RANGE_STOP `printf '%s\n' "${all_ips[@]}"|sort -t . -k 3,3n -k 4,4n|tail -n1`
 }
 
 #MAIN PART
@@ -591,7 +976,17 @@ get_network_installation_type
 msg "Deployment deicisons about the software and its releases to install" 7
 get_software_selection
 get_software_architecture
-[[ "$use_air_gap" == 'Y' ]] && prepare_offline_bastion
 mkdir -p $GI_TEMP
-
+[[ "$use_air_gap" == 'Y' ]] && prepare_offline_bastion
+msg "Installing tools for init.sh" 7
+[[ "$use_air_gap" == 'N' ]] && { dnf -qy install jq;[[ $? -ne 0 ]] && display_error "Cannot install jq"; }
+get_ocp_domain
+get_bastion_info
+msg "Collecting data about bootstrap node (IP and MAC addres, name)" 7
+get_nodes_info 1 "boot"
+msg "Collecting Control Plane nodes data (IP and MAC addres, name), values must beinserted as comma separated list without spaces" 7
+get_nodes_info 3 "mst"
+get_worker_nodes
+#software_installation_on_online
+get_set_services
 trap - EXIT

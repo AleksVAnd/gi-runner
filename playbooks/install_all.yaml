@@ -7,6 +7,8 @@
     domain:  "{{ lookup('env','GI_DOMAIN') }}"
     install_ldap:  "{{ lookup('env','GI_INSTALL_LDAP') }}"
     ssh_key:  "{{ lookup('env','GI_SSH_KEY') }}"
+    bas_ip:  "{{ lookup('env','GI_BASTION_IP') }}"
+
 
 
 
@@ -19,6 +21,7 @@
         - { name: "GI_DOMAIN", value: "{{ domain }}" }
         - { name: "GI_INSTALL_LDAP", value: "{{ install_ldap }}" }
         - { name: "GI_SSH_KEY", value: "{{ ssh_key }}" }
+        - { name: "GI_BASTION_IP", value: "{{ bas_ip }}" }
 
     - name: Set parameters for air-gapped installation
       set_fact:

@@ -1356,7 +1356,7 @@ function get_credentials() {
                 fi
                 ocp_password="${input_variable}"
         done
-        save_variable GI_OCADMIN_PWD "'$ocp_password'"
+        save_variable GI_OCADMIN_PWD "'$curr_password'"
         if [[ "$gi_install" == 'Y' || "$ics_install" == 'Y' ]]
         then
                 msg "Define ICS admin user password" 8
@@ -1371,7 +1371,7 @@ function get_credentials() {
                         fi
                         ics_password="${input_variable}"
                 done
-                save_variable GI_ICSADMIN_PWD "'$ics_password'"
+                save_variable GI_ICSADMIN_PWD "'$curr_password'"
         fi
 	if [[ "$install_ldap" == 'Y' ]]
         then
@@ -1386,7 +1386,7 @@ function get_credentials() {
                         fi
                         ldap_password="${input_variable}"
                 done
-                save_variable GI_LDAP_USERS_PWD "'$ldap_password'"
+                save_variable GI_LDAP_USERS_PWD "'$curr_password'"
         fi
 }
 
@@ -1513,6 +1513,122 @@ function validate_certs() {
         esac
 }
 
+function get_gi_options() {
+	msg "Collecting Guardium Insights parameters" 7
+        msg "Guardium Insights deployment requires some decisions such as storage size, functions enabled" 8
+        while $(check_input "txt" "${gi_namespace}" 3 10)
+        do
+                if [ ! -z "$GI_NAMESPACE_GI" ]
+                then
+                        get_input "txt" "Push <ENTER> to accept the previous choice [$GI_NAMESPACE_GI] or insert GI namespace name (maximum 10 characters)" true "$GI_NAMESPACE_GI"
+                else
+                        get_input "txt" "Insert GI namespace name (maximum 10 characters, default gi): " true "gi"
+                fi
+                gi_namespace="${input_variable}"
+        done
+        save_variable GI_NAMESPACE_GI $gi_namespace
+        while $(check_input "yn" "$db2_enc" false)
+        do
+                get_input "yn" "Should be DB2u tablespace encrypted?: " true
+                db2_enc=${input_variable^^}
+        done
+        save_variable GI_DB2_ENCRYPTED $db2_enc
+        if [[ $gi_version_selected -ge 3 ]]
+        then
+                while $(check_input "yn" "$stap_supp" false)
+                do
+                        get_input "yn" "Should be enabled the direct streaming from STAP's?: " false
+                        stap_supp=${input_variable^^}
+                done
+                save_variable GI_STAP_STREAMING $stap_supp
+
+        fi
+        get_gi_pvc_size
+}
+
+function pvc_sizes() {
+        local global_var
+        local global_var_val
+        local curr_value
+        local size_min=20
+        local size_max=1000000
+        local m_desc
+        local m_ask
+        local v_aux1
+        case $1 in
+                "db2-data")
+                        size_min=200
+                        [[ "gi_size" != "values-dev" ]] && v_aux1=2 || v_aux=1
+                        m_desc="DB2 DATA pvc - stores activity events, installation proces will create $v_aux1 PVC/PVC's, each instance contains different data"
+                        m_ask="DB2 DATA pvc, minium size $size_min GB"
+                        global_var="GI_DATA_STORAGE_SIZE"
+                        global_var_val="$GI_DATA_STORAGE_SIZE"
+                        ;;
+                "db2-meta")
+                        size_min=150
+                        m_desc="DB2 METADATA pvc - stores DB2 shared, temporary, tool files, installation proces will create 1 PVC"
+                        m_ask="DB2 METADATA pvc, minimum size $size_min GB"
+                        global_var="GI_METADATA_STORAGE_SIZE"
+                        global_var_val="$GI_METADATA_STORAGE_SIZE"
+                        ;;
+                "db2-logs")
+                        size_min=150
+                        [[ "gi_size" != "values-dev" ]] && v_aux1=2 || v_aux=1
+                        m_desc="DB2 ACTIVELOG pvc - stores DB2 transactional logs, installation process will create $v_aux1 PVC/PVC's, each instance contains different data"
+                        m_ask="DB2 ACTIVELOG pvc, minium size $size_min GB"
+                        global_var="GI_ACTIVELOGS_STORAGE_SIZE"
+                        global_var_val="$GI_ACTIVELOGS_STORAGE_SIZE"
+                        ;;
+                "mongo-data")
+                        size_min=50
+                        [[ "gi_size" != "values-dev" ]] && v_aux1=3 || v_aux=1
+                        m_desc="MONGODB DATA pvc - stores MongoDB data related to GI metadata and reports, installation process will create $v_aux1 PVC/PVC's, each instance contains this same data"
+                        m_ask="MONGODB DATA pvc, minium size $size_min GB"
+                        global_var="GI_MONGO_DATA_STORAGE_SIZE"
+                        global_var_val="$GI_MONGO_DATA_STORAGE_SIZE"
+                        ;;
+                "mongo-logs")
+                        size_min=10
+                        [[ "gi_size" != "values-dev" ]] && v_aux1=3 || v_aux=1
+                        m_desc="MONGODB LOG pvc - stores MongoDB logs, installation process will create $v_aux1 PVC/PVC's, each instance contains different data"
+                        m_ask="MONGODB LOG pvc, minium size $size_min GB"
+                        global_var="GI_MONGO_METADATA_STORAGE_SIZE"
+                        global_var_val="$GI_MONGO_METADATA_STORAGE_SIZE"
+                        ;;
+                "kafka")
+                        size_min=50
+                        [[ "gi_size" != "values-dev" ]] && v_aux1=3 || v_aux=1
+                        m_desc="KAFKA pvc - stores ML and Streaming data for last 7 days, installation process will create $v_aux1 PVC/PVC's, each instance contains this same data"
+                        m_ask="KAFKA pvc, minium size $size_min GB"
+                        global_var="GI_KAFKA_STORAGE_SIZE"
+                        global_var_val="$GI_KAFKA_STORAGE_SIZE"
+                        ;;
+                "zookeeper")
+                        size_min=5
+                        [[ "gi_size" != "values-dev" ]] && v_aux1=3 || v_aux=1
+                        m_desc="ZOOKEEPER pvc - stores Kafka configuration and health data, installation process will create $v_aux1 PVC/PVC's, each instance contains this same data"
+                        m_ask="ZOOKEEPER pvc, minium size $size_min GB"
+                        global_var="GI_ZOOKEEPER_STORAGE_SIZE"
+                        global_var_val="$GI_ZOOKEEPER_STORAGE_SIZE"
+                        ;;
+                "*")
+                        display_error "Wrong PVC type name"
+                        ;;
+        esac
+	while $(check_input "int" "${curr_value}" $size_min $size_max)
+        do
+                msg "$m_desc" 8
+                if [ ! -z "$global_var_val" ]
+                then
+                        get_input "txt" "Push <ENTER> to accept the previous choice [$global_var_val] or insert size of $m_ask: " true "$global_var_val"
+                else
+                        get_input "txt" "Insert size of $m_ask: " false
+                fi
+                curr_value="${input_variable}"
+        done
+        save_variable $global_var $curr_value
+}
+
 #MAIN PART
 
 echo "#gi-runner configuration file" > $file
@@ -1544,4 +1660,5 @@ get_cluster_storage_info
 get_inter_cluster_info
 get_credentials
 get_certificates
+[[ "$gi_install" == 'Y' ]] && get_gi_options
 trap - EXIT

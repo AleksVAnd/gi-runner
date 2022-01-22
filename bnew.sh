@@ -1099,7 +1099,7 @@ function get_service_assignment() {
                 if [ "$ics_on_list" == 'Y' ]
                 then
                         msg "Available worker nodes: $worker_wo_db2_name" 8
-                        while $(check_input $ics_nodes "nodes" $worker_wo_db2_name 3 "def")
+                        while $(check_input "nodes" $ics_nodes $worker_wo_db2_name 3 "def")
                         do
                                 if [ ! -z "$GI_ICS_NODES" ]
                                 then

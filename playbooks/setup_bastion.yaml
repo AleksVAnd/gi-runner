@@ -144,9 +144,9 @@
     state: link
 
 - name: Clean TFTP directory
-      file:
-        path: "/var/lib/tftp"
-        state: absent
+  file:
+    path: "/var/lib/tftp"
+    state: absent
 
 - name: Create TFTP directory
   file:

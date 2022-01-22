@@ -262,7 +262,7 @@
 
 - name: Start and enable chronyd
   service:
-  name: chronyd
+    name: chronyd
     state: restarted
     enabled: yes
   when: ntp_server == bas_ip

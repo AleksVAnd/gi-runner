@@ -470,6 +470,32 @@ function check_input() {
                                 echo true
                         fi
                         ;;
+		"cs")
+                        [[ $2 == 'C' || $2 == 'S' ]] && echo false || echo true
+                        ;;
+		"ldap_domain")
+                        if [ "$2" ]
+                        then
+                                [[ "$2" =~ ^([dD][cC]=[a-zA-Z-]{2,64},){1,}[dD][cC]=[a-zA-Z-]{2,64}$ ]] && echo false || echo true
+                        else
+                                echo true
+                        fi
+                        ;;
+                "users_list")
+                        local ulist
+                        if [ -z "$2" ] || $(echo "$2" | egrep -q "[[:space:]]" && echo true || echo false)
+                        then
+                                echo true
+                        else
+                                local result=false
+                                IFS=',' read -r -a ulist <<< "$2"
+                                for user in ${ulist[@]}
+                                do
+                                        [[ "$user" =~ ^[a-zA-Z][a-zA-Z0-9_-]{0,}[a-zA-Z0-9]$ ]] || result=true
+                                done
+                                echo $result
+                        fi
+                        ;;
 		*)
 			display_error "Error incorrect check_input type"
 	esac
@@ -542,6 +568,10 @@ function get_input() {
                         ;;
 		"int")
                         read input_variable
+                        ;;
+		"cs")
+                        read input_variable
+                        $3 && input_variable=${input_variable:-C} || input_variable=${input_variable:-S}
                         ;;
 		*)
 			display_error "Error"
@@ -1648,6 +1678,64 @@ function get_gi_pvc_size() {
         fi
 }
 
+function get_ics_options() {
+	msg "Collecting Common Services parameters" 7
+        local operand
+        local curr_op
+        msg "ICS provides set of operands which can be installed during installation, some of them are required and others can be used by IBM Cloud Packs installed on the top of it" 8
+        msg "Define which operands should be additionally installed" 8
+        local operand_list=("Zen,N" "Monitoring,Y" "Event_Streams,Y" "Logging,Y" "MongoDB,Y" "User_Data_Services",N" ""Apache_Spark,N" "IBM_API_Catalog,N" "Business_Teams,N")
+        declare -a ics_ops
+        for operand in ${operand_list[@]}
+        do
+                unset op_option
+                IFS="," read -r -a curr_op <<< $operand
+                while $(check_input "yn" "$op_option")
+                do
+                        get_input "yn"  "Would you like to install ${curr_op[0]//_/ } operand: " $([[ "${curr_op[1]}" != 'Y' ]] && echo true || echo false)
+                        op_option=${input_variable^^}
+                done
+                ics_ops+=($op_option)
+        done
+        save_variable GI_ICS_OPERANDS $(echo ${ics_ops[@]}|awk 'BEGIN { FS= " ";OFS="," } { $1=$1 } 1')
+}
+
+function get_ldap_options() {
+        msg "Collecting OpenLDAP deployment parameters" 7
+        while $(check_input "cs" "$ldap_depl")
+        do
+                get_input "cs" "Decide where LDAP instance should be deployed as Container on OpenShift (default) or as Standalone installation on bastion:? (\e[4mC\e[0m)ontainer/Ba(s)tion " true
+
+                ldap_depl=${input_variable^^}
+        done
+        save_variable GI_LDAP_DEPLOYMENT $ldap_depl
+        msg "Define LDAP domain distinguished name, only DC components are allowed" 8
+        while $(check_input "ldap_domain" "${ldap_domain}")
+        do
+                if [ ! -z "$GI_LDAP_DOMAIN" ]
+                then
+                        get_input "txt" "Push <ENTER> to accept the previous choice [$GI_LDAP_DOMAIN] or insert LDAP organization domain DN: " true "$GI_LDAP_DOMAIN"
+                else
+                        get_input "txt" "Insert LDAP organization domain DN (for example: DC=io,DC=priv): " false
+                fi
+                        ldap_domain="${input_variable}"
+        done
+        save_variable GI_LDAP_DOMAIN "'$ldap_domain'"
+        msg "Provide list of users which will be created in OpenLDAP instance" 8
+        while $(check_input "user_list" "${ldap_users}" )
+        do
+                if [ ! -z "$GI_LDAP_USERS" ]
+                then
+                        get_input "txt" "Push <ENTER> to accept the previous choice [$GI_LDAP_USERS] or insert comma separated list of LDAP users (without spaces): " true "$GI_LDAP_USERS"
+                else
+                        get_input "txt" "Insert comma separated list of LDAP users (without spaces): " false
+                fi
+                        ldap_users="${input_variable}"
+        done
+        save_variable GI_LDAP_USERS "'$ldap_users'"
+}
+
+
 
 #MAIN PART
 
@@ -1681,4 +1769,7 @@ get_inter_cluster_info
 get_credentials
 get_certificates
 [[ "$gi_install" == 'Y' ]] && get_gi_options
+[[ "$gi_install" == 'Y' ]] && save_variable GI_ICS_OPERANDS "N,N,Y,Y,Y,N,N,N,N"
+[[ "$ics_install" == 'Y' && "$gi_install" == 'N' ]] && get_ics_options
+[[ "$install_ldap" == 'Y' ]] && get_ldap_options
 trap - EXIT

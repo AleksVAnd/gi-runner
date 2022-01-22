@@ -228,3 +228,41 @@
     path: "{{ temp_dir }}/matchbox-v0.9.0-linux-amd64"
     state: absent
 
+- name: Check original chrony config file existence
+  stat:
+    path: "/etc/chrony.conf.orig"
+    register: chrony_config_presence
+
+- name: Restore original chrony config file
+  copy:
+    dest: /etc/chrony.conf
+    src: /etc/chrony.conf.orig
+  when: chrony_config_presence.stat.exists == true
+
+- name: Copy original chrony config file
+  copy:
+    src: /etc/chrony.conf
+    dest: /etc/chrony.conf.orig
+  when: chrony_config_presence.stat.exists == false
+
+- name: Modify chrony.conf
+  lineinfile:
+    path: /etc/chrony.conf
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  with_items:
+    - { regexp: '^#allow 192.168.0.0/16', line: "allow all" }
+    - { regexp: '^#local stratum 10', line: "local stratum 10" }
+  when: ntp_server == bas_ip
+
+- name: Set SE Linux for chronyd
+  shell:
+    cmd: semanage permissive -a chronyd_t
+  when: ntp_server == bas_ip and false
+
+- name: Start and enable chronyd
+  service:
+  name: chronyd
+    state: restarted
+    enabled: yes
+  when: ntp_server == bas_ip

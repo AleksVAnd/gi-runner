@@ -1056,19 +1056,6 @@ function get_set_services() {
         if [[ $install_ntpd == 'Y' ]]
         then
                 save_variable GI_NTP_SRV $bastion_ip
-                msg "Provide IP address space for NTPD server on bastion using CIDR specification (for example 192.168.0.0/16" 8
-		msg "For security reason the NTPD server on bastion should serve only OCP cluster environment"
-		while $(check_input "cidr" "${ntp_cidr}")
-        	do
-                	if [ ! -z "$GI_NTP_CIDR" ]
-                	then
-                        	get_input "txt" "Push <ENTER> to accept the previous choice [$GI_NTP_CIDR] or insert access CIDR for NTPD (IP/MASK): " true "$GI_NTP_CIDR"
-                	else
-                        	get_input "txt" "Insert access CIDR for NTPD: " false
-			fi
-                	ntp_cidr="${input_variable}"
-        	done
-                save_variable GI_NTP_CIDR "'$ntp_cidr'"
                 msg "Ensure that date and time are set correctly" 7
                 while $(check_input "yn" $is_td_ok false)
                 do

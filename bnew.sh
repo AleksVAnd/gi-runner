@@ -26,7 +26,7 @@ function msg() {
 			printf "\e[1m>>> $1"
 			;;
 		"6")
-			print "\e[32m\e[2mINFO:\e[22m $1\n\e[0m"
+			printf "\e[32m\e[2mINFO:\e[22m $1\n\e[0m"
 			;;
 		"7")
 			printf "\e[34m\e[2mTASK:\e[22m $1\n\e[0m"
@@ -1879,7 +1879,7 @@ get_certificates
 create_cluster_ssh_key
 msg "========================================" 6
 msg "All information to deploy environment collected" 6
-if {LAST_KERNEL=$(rpm -q --last kernel | awk 'NR==1{sub(/kernel-/,""); print $1}'); CURRENT_KERNEL=$(uname -r); if [ $LAST_KERNEL != $CURRENT_KERNEL ]; then echo true; else echo false; fi;}
+if LAST_KERNEL=$(rpm -q --last kernel | awk 'NR==1{sub(/kernel-/,""); print $1}'); CURRENT_KERNEL=$(uname -r); if [ $LAST_KERNEL != $CURRENT_KERNEL ]; then true; else false; fi;
 then
 	msg "System reboot required because new kernel has been installed" 6
 	msg "Execute these commands after relogin to bastion:" 6

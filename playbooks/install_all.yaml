@@ -118,4 +118,4 @@
 
     - name: Setup bastion
       include: setup_bastion.yaml
-      when: skip_phase1 is undefined or skip_phase2 is undefined
+      when: skip_phase1 != "yes" or skip_phase2 != "yes"

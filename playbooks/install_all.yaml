@@ -1,6 +1,6 @@
 - hosts: bastion
   vars:
-    skip_phase: 0
+    #skip_phase: 0
     temp_dir: "../gi-temp"
     registry_version: "2.7.1"
     matchbox_version: "v0.9.0"

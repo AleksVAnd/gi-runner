@@ -35,6 +35,8 @@
     ocadmin:  "{{ lookup('env','GI_OCADMIN') }}"
     ocadmin_password:  "{{ lookup('env','GI_OCADMIN_PWD') }}"
     storage_type:  "{{ lookup('env','GI_STORAGE_TYPE') }}"
+    storage_device: "{{ lookup('env','GI_STORAGE_DEVICE') }}"
+    storage_device_size: "{{ lookup('env','GI_STORAGE_DEVICE_SIZE') }}"
 
 
   tasks:
@@ -69,6 +71,8 @@
         - { name: "GI_OCADMIN", value: "{{ ocadmin }}" }
         - { name: "GI_OCADMIN_PWD", value: "{{ ocadmin_password }}" }
         - { name: "GI_STORAGE_TYPE", value: "{{ storage_type }}" }
+        - { name: "GI_STORAGE_DEVICE", value: "{{ storage_device }}" }
+        - { name: "GI_STORAGE_DEVICE_SIZE", value: "{{ storage_device_size }}" }
 
     - name: Set parameters for air-gapped installation
       set_fact:

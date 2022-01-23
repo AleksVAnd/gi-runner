@@ -188,14 +188,14 @@
     dest: "{{ item.dest }}"
   with_items:
     - { src: "rook_icsp.j2", dest: "{{ temp_dir }}/rook/rook_icsp.yaml" }
-  when: internet_type == 'A' and storage_type='R'
+  when: internet_type == 'A' and storage_type == 'R'
 
 - name: Configure imageContentSourcePolicy for rook-ceph
   shell:
     cmd: "oc apply -f {{ temp_dir }}/rook/{{ item }}"
   with_items:
     - rook_icsp.yaml
-  when: internet_type == 'A' and storage_type='R'
+  when: internet_type == 'A' and storage_type == 'R'
 
 - name: Configure openldap imagecontentsourcepolicy files
   template:
@@ -203,14 +203,14 @@
     dest: "{{ item.dest }}"
   with_items:
     - { src: "openldap_icsp.j2", dest: "{{ temp_dir }}/adds/openldap_icsp.yaml" }
-  when: internet_type == 'A' and install_ldap='Y'
+  when: internet_type == 'A' and install_ldap == 'Y'
 
 - name: Configure imageContentSourcePolicy for openldap
   shell:
     cmd: "oc apply -f {{ temp_dir }}/adds/{{ item }}"
   with_items:
     - openldap_icsp.yaml
-  when: internet_type == 'A' and install_ldap='Y'
+  when: internet_type == 'A' and install_ldap == 'Y'
 
 - name: Wait - cluster stabilization
   vars:

@@ -1,0 +1,44 @@
+- name: Set digests for images in order
+  shell:
+    cmd: "IFS=',' read -r -a rook_v_oper <<< `cat {{ temp_dir }}/rook/rook_images_sha|grep {{ item }}`;echo \"`echo ${rook_v_oper[1]}|awk -F '/' '{print $NF}'|awk -F':' '{print $1}'`@${rook_v_oper[2]}\""
+  register: rook_digests
+  with_items:
+    - ROOK_CEPH_OPER
+    - ROOK_CEPH_IMAGE
+    - ROOK_CSI_CEPH_IMAGE
+    - ROOK_CSI_REGISTRAR_IMAGE
+    - ROOK_CSI_RESIZER_IMAGE
+    - ROOK_CSI_PROVISIONER_IMAGE
+    - ROOK_CSI_SNAPSHOTTER_IMAGE
+    - ROOK_CSI_ATTACHER_IMAGE
+    - CSI_VOLUME_REPLICATION_IMAGE
+  when: internet_type == 'A'
+
+- name: Set rook-registry URL
+  set_fact:
+    rook_registry: "{{ 'quay.io/ceph/ceph:'+rook_ceph_version if internet_type != 'A' else 'registry.'+domain+':5000/rook/ceph:'+rook_ceph_version }}"
+    rook_registry: "{{ 'ceph:'+rook_ceph_version if internet_type != 'A' else rook_digests.results[1].stdout }}"
+
+- name: Label rook storage nodes
+  shell:
+    cmd: "oc label node {{ item }}.{{ domain }} role=storage-node --overwrite=true;oc label node {{ item }}.{{ domain }} storage=rook --overwrite=true"
+  with_items: "{{ rook_dedicated_nodes|list }}"
+  when: rook_dedicated_nodes|length > 2
+
+- set_fact:
+    rook_ceph_image: "ceph:{{ rook_ceph_version }}"
+  when: internet_type != 'A'
+
+- set_fact:
+    rook_ceph_image: "{{ rook_digests.results[1].stdout }}"
+  when: internet_type == 'A'
+
+- name: Configure rook-ceph CRD's
+  shell:
+    cmd: "oc apply -f ../scripts/rook-latest-crds.yaml"
+  when: storage_type == "R"
+
+- name: Configure common rook settings
+  shell:
+    cmd: "oc apply -f ../scripts/rook-latest-common.yaml"
+  when: storage_type == "R"

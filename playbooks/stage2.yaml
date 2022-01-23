@@ -184,5 +184,5 @@
 
 - name: Wait - cluster stabilization
   pause:
-    minutes: "8 if ocp_release|int < 3 else 1"|int
+    minutes: "8|int if ocp_release|int < 3 else 1|int"
   when: internet_type == 'A'

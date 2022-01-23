@@ -25,7 +25,3 @@ platform:
  none: {}
 fips: false
 sshKey: {{ ssh_pub_key.stdout }}
-{% if ocp_ext_ingress == 'Y' %}
-additionalTrustBundle: |
-{{ ocp_ca_cert.stdout }}
-{% endif %}

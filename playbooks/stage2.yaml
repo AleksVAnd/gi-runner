@@ -213,10 +213,8 @@
   when: internet_type == 'A' and install_ldap == 'Y'
 
 - name: Wait - cluster stabilization
-  vars:
-    timeout_task: "8 if ocp_release|int < 3 else 3"
   pause:
-    minutes: "{{ timeout_task|int }}"
+    minutes: 5
   when: internet_type == 'A'
 
 - name: Check cluster nodes health after Content Source Policy change
@@ -235,4 +233,50 @@
   retries: 150
   delay: 30
   when: internet_type == 'A'
+
+- name: Add CM with new CA cert
+  shell:
+    cmd: "oc create configmap gn-ca --from-file=ca-bundle.crt={{ ocp_ca }} -n openshift-config"
+  when: ocp_ext_ingress == 'Y' and false
+
+- name: Add CA cert to OCP proxy configuration
+  shell:
+    cmd: "oc patch proxy/cluster --type=merge -p '{\"spec\":{\"trustedCA\":{\"name\":\"gn-ca\"}}}'"
+  when: ocp_ext_ingress == 'Y'
+
+- name: Wait - cluster stabilization
+  pause:
+    minutes: 5
+  when: ocp_ext_ingress == 'Y'
+
+- name: Check cluster nodes health after proxy certificate change
+  shell: ../scripts/check_cluster_health_operators.sh
+  register: cluster_health_operators
+  until: cluster_health_operators.stdout == "0"
+  retries: 100
+  delay: 30
+  when: ocp_ext_ingress == 'Y'
+
+- name: Add secret with new cert
+  shell:
+    cmd: "oc create secret tls gncert --cert={{ ocp_cert }} --key={{ ocp_key }} -n openshift-ingress"
+  when: ocp_ext_ingress == 'Y'
+
+- name: Modify certificate for ingress
+  shell:
+    cmd: "oc patch ingresscontroller.operator default --type=merge -p '{\"spec\":{\"defaultCertificate\": {\"name\": \"gncert\"}}}' -n openshift-ingress-operator"
+  when: ocp_ext_ingress == 'Y'
+
+- name: Wait - cluster stabilization
+  pause:
+    minutes: 1
+  when: ocp_ext_ingress == 'Y'
+
+- name: Check cluster nodes health after ingress change
+  shell: ../scripts/check_cluster_health_operators.sh
+  register: cluster_health_operators
+  until: cluster_health_operators.stdout == "0"
+  retries: 100
+  delay: 30
+  when: ocp_ext_ingress == 'Y'
 

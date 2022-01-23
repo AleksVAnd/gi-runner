@@ -159,21 +159,39 @@
         - { name: "GI_OCP_IN_KEY", value: "{{ ocp_key }}" }
       when: ocp_ext_ingress == 'Y' and item.value == ""
 
-    - name: Set ICS installation variables
+    - name: Set ICS installation variables from env
       set_fact:
         gi_version_index:  "{{ lookup('env','GI_VERSION') }}"
         gi_size:  "{{ lookup('env','GI_SIZE_GI') }}"
         ics_version_hint: "{{ lookup('env','GI_ICS_VERSION') }}"
         ics_operands_arr: "{{ lookup('env', 'GI_ICS_OPERANDS').split(',') }}"
         ics_dedicated_nodes: "{{ lookup('env', 'GI_ICS_NODES').split(',') }}"
+      when: install_ics == 'Y' 
+
+    - name: Check ICS variables
+      fail: msg="Variable {{ item.name }} is not set"
+      loop:
+        - { name: "GI_VERSION", value: "{{ gi_version_index }}" }
+        - { name: "GI_SIZE_GI", value: "{{ gi_size }}" }
+        - { name: "GI_ICS_VERSION", value: "{{ ics_version_hint }}" }
+        - { name: "GI_ICS_OPERANDS", value: "{{ ics_operands_arr }}" }
+        - { name: "GI_ICS_NODES", value: "{{ ics_dedicated_nodes }}" }
+      when: install_ics == 'Y' and item.value == ""
+
+    - name: Set ICS installation variables 1
+      set_fact:
         ics_size_hint: "{{ 'S' if gi_size == 'values-dev' else 'S' if gi_size == 'values-poc-lite' else 'M' }}"
         ics_operator_namespace: "common-service"
         ics_case_name: "ibm-cp-common-services"
         ics_case_inventory_setup: "ibmCommonServiceOperatorSetup"
+      when: install_ics == 'Y' 
+
+    - name: Set ICS installation variables 2
+      set_fact:
         ics_version: "{{ ics_versions[ics_version_hint|int] }}"
         ics_case: "{{ ics_cases[ics_version_hint|int] }}"
         ics_size: "{{ 'small' if ics_size_hint == 'S' else 'medium' if ics_size_hint == 'M' else 'large' }}"
-      when: install_ics == 'Y' 
+      when: install_ics == 'Y'
 
     - name: Set rook nodes
       set_fact:

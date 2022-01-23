@@ -1,0 +1,90 @@
+- name: Configure OCS nodes on workers
+  shell:
+    cmd: "oc label nodes {{ item }}.{{ domain }} cluster.ocs.openshift.io/openshift-storage='' --overwrite=true"
+  with_items: "{{ worker_name|list if worker_name|length == 2 else worker_name[:3]|list }}"
+  when: is_master_only == 'N' and is_ocs_tainted == 'N'
+
+- name: Configure OCS nodes for taint
+  shell: |
+    oc label nodes {{ item }}.{{ domain }} cluster.ocs.openshift.io/openshift-storage='' --overwrite=true
+    oc label nodes {{ item }}.{{ domain }} node-role.kubernetes.io/infra='' --overwrite=true
+  with_items: "{{ ocs_name|list }}"
+  when: is_master_only == 'N' and is_ocs_tainted == 'Y'
+
+- name: Configure OCS nodes on masters
+  shell:
+    cmd: "oc label nodes {{ item }}.{{ domain }} cluster.ocs.openshift.io/openshift-storage='' --overwrite=true"
+  with_items: "{{ master_name|list }}"
+  when: is_master_only == 'Y'
+
+- name: Create OCS namespaces
+  shell:
+    cmd: "oc create namespace {{ item }}"
+  with_items:
+    - openshift-local-storage
+    - openshift-storage
+  ignore_errors: yes
+
+- name: Configure local storage operator file
+  vars:
+    operator_source: "{{ 'redhat-operators' if internet_type != 'A' else 'redhat-operator-index' }}"
+  template:
+    src: "local-storage-op.j2"
+    dest: "{{ temp_dir }}/olm/local-storage-op.yaml"
+
+- name: Configure local storage operator
+  shell:
+    cmd: "oc apply -f {{ temp_dir }}/olm/local-storage-op.yaml"
+
+- name: Wait for local storage operator
+  shell:
+    cmd: "oc get csv -n openshift-local-storage --no-headers -o custom-columns=STATUS:.status.phase"
+  register: ls_operator_status
+  until: "ls_operator_status.stdout == \"Succeeded\""
+  retries: 30
+  delay: 10
+
+- name: Configure local storage deployment file with workers
+  vars:
+    nodes: "{{ worker_name|list if worker_name|length == 2 else worker_name[:3]|list }}"
+  template:
+    src: "local-storage-vol.j2"
+    dest: "{{ temp_dir }}/olm/local-storage-vol.yaml"
+  when: is_master_only == 'N' and is_ocs_tainted == 'N'
+
+- name: Configure local storage deployment file in taint
+  vars:
+    nodes: "{{ ocs_name|list }}"
+  template:
+    src: "local-storage-vol-tainted.j2"
+    dest: "{{ temp_dir }}/olm/local-storage-vol.yaml"
+  when: is_master_only == 'N' and is_ocs_tainted == 'Y'
+
+- name: Configure local storage deployment file with masters only
+  vars:
+    nodes: "{{ master_name|list }}"
+  template:
+    src: "local-storage-vol.j2"
+    dest: "{{ temp_dir }}/olm/local-storage-vol.yaml"
+  when: is_master_only == 'Y'
+
+- name: Deploy local storage
+  shell:
+    cmd: "oc apply -f {{ temp_dir }}/olm/local-storage-vol.yaml"
+
+- name: Wait for local storage deployment
+  shell:
+    cmd: "oc get pv | grep localblock-sc | wc -l"
+  register: ls_status
+  until: "ls_status.stdout|int >= 3"
+  retries: 30
+  delay: 10
+  when: storage_type == "O"
+
+- name: Taint OCS nodes
+  shell:
+    cmd: "oc adm taint node {{ item }}.{{ domain }} node.ocs.openshift.io/storage=\"true\":NoSchedule"
+  with_items: "{{ ocs_name|list }}"
+  when: is_master_only == 'N' and is_ocs_tainted == 'Y'
+  ignore_errors: yes
+

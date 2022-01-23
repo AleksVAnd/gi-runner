@@ -28,6 +28,8 @@
     ocp_ext_ingress: "{{ lookup('env','GI_OCP_IN') }}"
     ics_ext_ingress: "{{ lookup('env','GI_ICS_IN') }}"
     gi_ext_ingress: "{{ lookup('env','GI_IN') }}"
+    cluster_network:  "{{ lookup('env','GI_OCP_CIDR') }}"
+    cluster_network_subnet:  "{{ lookup('env','GI_OCP_CIDR_MASK') }}"
 
 
   tasks:
@@ -57,6 +59,8 @@
         - { name: "GI_OCP_IN", value: "{{ ocp_ext_ingress }}" }
         - { name: "GI_ICS_IN", value: "{{ ics_ext_ingress }}" }
         - { name: "GI_IN", value: "{{ gi_ext_ingress }}" }
+        - { name: "GI_OCP_CIDR", value: "{{ cluster_network }}" }
+        - { name: "GI_OCP_CIDR_MASK", value: "{{ cluster_network_subnet }}" }
 
     - name: Set parameters for air-gapped installation
       set_fact:

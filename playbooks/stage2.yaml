@@ -216,7 +216,7 @@
   vars:
     timeout_task: "8 if ocp_release|int < 3 else 3"
   pause:
-    minutes: timeout_task|int
+    minutes: "{{ timeout_task|int }}"
   when: internet_type == 'A'
 
 - name: Check cluster nodes health after Content Source Policy change

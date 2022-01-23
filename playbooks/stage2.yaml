@@ -97,11 +97,6 @@
     password: "{{ ocadmin_password }}"
   when: is_htpasswd_secret.stdout|int == 0
 
-- name: Wait 1 minute before adding admin
-  pause:
-    minutes: 1
-  when: is_htpasswd_secret.stdout|int == 0
-
 - name: Register htpasswd file in OCP
   shell:
     cmd: "{{ item.cmd }}"
@@ -116,6 +111,11 @@
   shell:
     cmd: "oc patch OperatorHub cluster --type json -p '[{\"op\": \"add\", \"path\": \"/spec/disableAllDefaultSources\", \"value\": true}]'"
   when: internet_type == 'A'
+
+- name: Wait 1 minute before adding admin
+  pause:
+    minutes: 1
+  when: is_htpasswd_secret.stdout|int == 0
 
 - name: Identify image registry name in the import
   shell:
@@ -184,5 +184,5 @@
 
 - name: Wait - cluster stabilization
   pause:
-    minutes: "8 if ocp_release|int < 3 else 1"
+    minutes: "8 if ocp_release|int < 3 else 1"|int
   when: internet_type == 'A'

@@ -185,3 +185,7 @@
       include: ocs_install.yaml
       when: skip_phase|int < 3 and storage_type == 'O'
 
+    - name: Setup image registry
+      include: image_registry_setup.yaml
+      when: skip_phase|int < 3
+

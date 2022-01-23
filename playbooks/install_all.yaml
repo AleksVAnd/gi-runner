@@ -6,6 +6,8 @@
     matchbox_version: "v0.9.0"
     rook_operator_version: "v1.8.2"
     rook_ceph_version: "v16.2.7"
+    ics_versions: [ "3.7.4","3.8.1","3.9.1","3.10.0","3.11.0","3.12.1","3.13.0", "3.14.2" ]
+    ics_cases: [ "ibm-cp-common-services-1.3.4.tgz","ibm-cp-common-services-1.4.1.tgz","ibm-cp-common-services-1.5.1.tgz","ibm-cp-common-services-1.6.0.tgz","ibm-cp-common-services-1.7.0.tgz","ibm-cp-common-services-1.8.1.tgz","ibm-cp-common-services-1.9.0.tgz", "ibm-cp-common-services-1.10.2.tgz" ]
     internet_type:  "{{ lookup('env','GI_INTERNET_ACCESS') }}"
     domain:  "{{ lookup('env','GI_DOMAIN') }}"
     install_ldap:  "{{ lookup('env','GI_INSTALL_LDAP') }}"
@@ -30,13 +32,15 @@
     ocp_ext_ingress: "{{ lookup('env','GI_OCP_IN') }}"
     ics_ext_ingress: "{{ lookup('env','GI_ICS_IN') }}"
     gi_ext_ingress: "{{ lookup('env','GI_IN') }}"
-    cluster_network:  "{{ lookup('env','GI_OCP_CIDR') }}"
+    cluster_network: "{{ lookup('env','GI_OCP_CIDR') }}"
     cluster_network_subnet:  "{{ lookup('env','GI_OCP_CIDR_MASK') }}"
-    ocadmin:  "{{ lookup('env','GI_OCADMIN') }}"
-    ocadmin_password:  "{{ lookup('env','GI_OCADMIN_PWD') }}"
-    storage_type:  "{{ lookup('env','GI_STORAGE_TYPE') }}"
+    ocadmin: "{{ lookup('env','GI_OCADMIN') }}"
+    ocadmin_password: "{{ lookup('env','GI_OCADMIN_PWD') }}"
+    storage_type: "{{ lookup('env','GI_STORAGE_TYPE') }}"
     storage_device: "{{ lookup('env','GI_STORAGE_DEVICE') }}"
     storage_device_size: "{{ lookup('env','GI_STORAGE_DEVICE_SIZE') }}"
+    install_gi: "{{ lookup('env','GI_INSTALL_GI') }}"
+    install_ics: "{{ lookup('env','GI_ICS') }}"
 
 
   tasks:
@@ -73,6 +77,8 @@
         - { name: "GI_STORAGE_TYPE", value: "{{ storage_type }}" }
         - { name: "GI_STORAGE_DEVICE", value: "{{ storage_device }}" }
         - { name: "GI_STORAGE_DEVICE_SIZE", value: "{{ storage_device_size }}" }
+        - { name: "GI_INSTALL_GI", value: "{{ install_gi }}" }
+        - { name: "GI_ICS", value: "{{ install_ics }}" }
 
     - name: Set parameters for air-gapped installation
       set_fact:
@@ -153,6 +159,22 @@
         - { name: "GI_OCP_IN_KEY", value: "{{ ocp_key }}" }
       when: ocp_ext_ingress == 'Y' and item.value == ""
 
+    - name: Set ICS installation variables
+      set_fact:
+        gi_version_index:  "{{ lookup('env','GI_VERSION') }}"
+        gi_size:  "{{ lookup('env','GI_SIZE_GI') }}"
+        ics_version_hint: "{{ lookup('env','GI_ICS_VERSION') }}"
+        ics_operands_arr: "{{ lookup('env', 'GI_ICS_OPERANDS').split(',') }}"
+        ics_dedicated_nodes: "{{ lookup('env', 'GI_ICS_NODES').split(',') }}"
+        ics_size_hint: "{{ 'S' if gi_size == 'values-dev' else 'S' if gi_size == 'values-poc-lite' else 'M' }}"
+        ics_operator_namespace: "common-service"
+        ics_case_name: "ibm-cp-common-services"
+        ics_case_inventory_setup: "ibmCommonServiceOperatorSetup"
+        ics_version: "{{ ics_versions[ics_version_hint|int] }}"
+        ics_case: "{{ ics_cases[ics_version_hint|int] }}"
+        ics_size: "{{ 'small' if ics_size_hint == 'S' else 'medium' if ics_size_hint == 'M' else 'large' }}"
+      when: install_ics == 'Y' 
+
     - name: Set rook nodes
       set_fact:
         rook_dedicated_nodes: "{{ lookup('env', 'GI_ROOK_NODES').split(',') }}"
@@ -191,4 +213,4 @@
 
     - name: Install ICS
       include: ics_install.yaml
-      when: skip_phase|int < 4 and ics_install == 'Y'
+      when: skip_phase|int < 4 and install_ics == 'Y'

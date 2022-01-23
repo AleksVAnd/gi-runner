@@ -1,0 +1,19 @@
+- name: Create ICS operator namespace
+  shell:
+    cmd: "oc create namespace {{ ics_operator_namespace }} || echo 'Namespace exists'"
+  ignore_errors: yes
+
+- name: Label ICS nodes
+  shell:
+    cmd: "oc label node {{ item }}.{{ domain }} ics_role=yes --overwrite=true"
+  with_items: "{{ ics_dedicated_nodes|list }}"
+  when: ics_dedicated_nodes|length > 2
+
+- name: Create ICS namespace with node selector
+  shell:
+    cmd: "{{ item }}"
+  with_items:
+    - oc create namespace ibm-common-services || echo "Namespace exists"
+    - "oc patch namespace ibm-common-services -p '{\"metadata\":{\"annotations\": {\"scheduler.alpha.kubernetes.io/node-selector\": \"ics_role=yes\"}}}'"
+  when: ics_dedicated_nodes|length > 2
+

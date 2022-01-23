@@ -159,3 +159,53 @@
   retries: 30
   delay: 10
 
+- name: Generate operands file
+  template:
+    src: "ics_operands.j2"
+    dest: "{{ temp_dir }}/ics_arch/ics_operands.yaml"
+
+- name: Deploy ICS
+  shell:
+    cmd: "oc apply -f {{ temp_dir }}/ics_arch/ics_operands.yaml"
+
+- name: Wait for operands deployment initiation
+  pause:
+    minutes: 3
+
+- name: Wait for successful ICS deployment (takes 20-60 minutes)
+  shell:
+    cmd: "oc get pods --no-headers -n ibm-common-services|grep -v Completed|grep -v Running|wc -l"
+  register: ics_pods_status
+  until: "ics_pods_status.stdout == \"0\""
+  retries: 80
+  delay: 20
+
+- name: Check pod's containers status
+  shell:
+    cmd: "oc get pods -n ibm-common-services|grep Running|awk '{print $2}'|awk -F'/' '$1!=$2'|wc -l"
+  register: ics_containers_status
+  until: "ics_containers_status.stdout == \"0\""
+  retries: 80
+  delay: 20
+
+- name: Login to ICS
+  shell:
+    cmd: "cloudctl login -a https://cp-console.apps.{{ domain }} -u admin -p `oc -n ibm-common-services get secret platform-auth-idp-credentials -o jsonpath='{.data.admin_password}' | base64 -d` -n kube-system"
+
+- name: Set ICS admin password
+  shell:
+    cmd: "cloudctl pm update-secret ibm-common-services platform-auth-idp-credentials -f -d admin_password='{{ ics_admin_password }}'"
+
+- name: Wait for authentication changes
+  pause:
+    minutes: 3
+
+- name: Wait for successful password change
+  shell:
+    cmd: "oc get pods --no-headers -n ibm-common-services|grep -v Completed|grep -v Running|wc -l"
+  register: ics_pods_status
+  until: "ics_pods_status.stdout == \"0\""
+  retries: 80
+  delay: 20
+
+

@@ -17,7 +17,7 @@
 - name: Set rook-registry URL
   set_fact:
     rook_registry: "{{ 'quay.io/ceph/ceph:'+rook_ceph_version if internet_type != 'A' else 'registry.'+domain+':5000/rook/ceph:'+rook_ceph_version }}"
-    rook_registry: "{{ 'ceph:'+rook_ceph_version if internet_type != 'A' else rook_digests.results[1].stdout }}"
+    rook_ceph_image: "{{ 'ceph:'+rook_ceph_version if internet_type != 'A' else rook_digests.results[1].stdout }}"
 
 - name: Label rook storage nodes
   shell:
@@ -25,20 +25,43 @@
   with_items: "{{ rook_dedicated_nodes|list }}"
   when: rook_dedicated_nodes|length > 2
 
-- set_fact:
-    rook_ceph_image: "ceph:{{ rook_ceph_version }}"
-  when: internet_type != 'A'
-
-- set_fact:
-    rook_ceph_image: "{{ rook_digests.results[1].stdout }}"
-  when: internet_type == 'A'
-
 - name: Configure rook-ceph CRD's
   shell:
     cmd: "oc apply -f ../scripts/rook-latest-crds.yaml"
-  when: storage_type == "R"
 
 - name: Configure common rook settings
   shell:
     cmd: "oc apply -f ../scripts/rook-latest-common.yaml"
-  when: storage_type == "R"
+
+- name: Configure rook-ceph cluster file
+  vars:
+    multiple_per_node: "true"
+  template:
+    src: "rook-latest-cluster.j2"
+    dest: "{{ temp_dir }}/rook/rook-cluster.yaml"
+
+- name: Configure rook-ceph-rbd-sc file
+  vars:
+    replica_size: "2"
+    requires_replica: "true"
+  template:
+    src: "rook-storage_class_rbd.j2"
+    dest: "{{ temp_dir }}/rook/rook-storage_class_rbd.yaml"
+
+- name: Configure rook operator file offline
+  template:
+    src: "rook-latest-operator-offline.j2"
+    dest: "{{ temp_dir }}/rook/rook-latest-operator.yaml"
+  when: internet_type == 'A'
+
+- name: Configure rook operator file online
+  template:
+    src: "rook-latest-operator.j2"
+    dest: "../gi-temp/rook-latest-operator.yaml"
+  when: internet_type != 'A'
+
+- name: Configure rook toolbox
+  template:
+    src: "rook-toolbox.j2"
+    dest: "../gi-temp/rook-toolbox.yaml"
+  when: internet_type != 'A'

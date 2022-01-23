@@ -57,11 +57,27 @@
 - name: Configure rook operator file online
   template:
     src: "rook-latest-operator.j2"
-    dest: "../gi-temp/rook-latest-operator.yaml"
+    dest: "{{ temp_dir }}/rook/rook-latest-operator.yaml"
   when: internet_type != 'A'
 
 - name: Configure rook toolbox
   template:
     src: "rook-toolbox.j2"
-    dest: "../gi-temp/rook-toolbox.yaml"
+    dest: "{{ temp_dir }}/rook/rook-toolbox.yaml"
   when: internet_type != 'A'
+
+- name: Configure rook operator
+  shell:
+    cmd: "{{ item }}"
+  loop:
+    - "oc apply -f {{ temp_dir }}/rook/rook-latest-operator.yaml"
+    - "oc apply -f {{ temp_dir }}/rook/rook-latest-filesystem.yaml"
+
+- name: Wait for Rook operator
+  shell:
+    cmd: "oc get pods -n rook-ceph --selector app=rook-ceph-operator --no-headers -o custom-columns=STATUS:.status.phase|grep -v Running|wc -l"
+  register: rook_operator_status
+  until: "rook_operator_status.stdout == \"0\""
+  retries: 30
+  delay: 10
+

@@ -48,7 +48,6 @@
     install_gi: "{{ lookup('env','GI_INSTALL_GI') }}"
     install_ics: "{{ lookup('env','GI_ICS') }}"
     ics_admin_password: "{{ lookup('env','GI_ICSADMIN_PWD') }}"
-    ics_ext_ingress: "{{ lookup('env','GI_ICS_IN') }}"
 
 
   tasks:
@@ -88,7 +87,6 @@
         - { name: "GI_INSTALL_GI", value: "{{ install_gi }}" }
         - { name: "GI_ICS", value: "{{ install_ics }}" }
         - { name: "GI_ICSADMIN_PWD", value: "{{ ics_admin_password }}" }
-        - { name: "GI_ICS_IN", value: "{{ ics_ext_ingress }}" }
 
     - name: Set parameters for air-gapped installation
       set_fact:

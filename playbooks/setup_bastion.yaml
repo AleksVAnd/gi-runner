@@ -143,6 +143,13 @@
     - { path: "/var/lib/tftp" }
     - { path: "../ocp" }
 
+- name: Create temp subdirectories
+  file:
+    path: "{{ item.path }}"
+    state: directory
+  with_items:
+    - { path: "../ocp" }
+
 - name: Set variable for public SSH key
   shell: >
     cat "{{ ssh_key }}.pub"

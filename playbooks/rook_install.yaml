@@ -48,23 +48,19 @@
     src: "rook-storage_class_rbd.j2"
     dest: "{{ temp_dir }}/rook/rook-storage_class_rbd.yaml"
 
-- name: Configure rook operator file offline
+- name: Configure rook operator file
   template:
-    src: "rook-latest-operator-offline.j2"
+    src: "'rook-latest-operator.j2' if internet_type != 'A' else rook-latest-operator-offline.j2"
     dest: "{{ temp_dir }}/rook/rook-latest-operator.yaml"
-  when: internet_type == 'A'
-
-- name: Configure rook operator file online
-  template:
-    src: "rook-latest-operator.j2"
-    dest: "{{ temp_dir }}/rook/rook-latest-operator.yaml"
-  when: internet_type != 'A'
 
 - name: Configure rook toolbox
   template:
-    src: "rook-toolbox.j2"
+    src: "'rook-toolbox.j2' if internet_type != 'A' else 'rook-toolbox-offline.j2'"
     dest: "{{ temp_dir }}/rook/rook-toolbox.yaml"
-  when: internet_type != 'A'
+
+ - name: Deploy rook toolbox
+    shell:
+      cmd: "oc apply -f {{ temp_dir }}/rook/rook-toolbox.yaml"
 
 - name: Configure rook operator
   shell:

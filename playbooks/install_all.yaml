@@ -151,9 +151,9 @@
       when: ocp_ext_ingress == 'Y' and item.value == ""
 
     - name: Set rook nodes
-    set_fact:
-      rook_dedicated_nodes: "{{ lookup('env', 'GI_ROOK_NODES').split(',') }}"
-    when: storage_type == 'R'
+      set_fact:
+        rook_dedicated_nodes: "{{ lookup('env', 'GI_ROOK_NODES').split(',') }}"
+      when: storage_type == 'R'
 
     - name: Setup bastion
       include: stage1.yaml

@@ -580,3 +580,78 @@
   shell:
     cmd: semanage permissive -a dnsmasq_t
 
+- name: Check presence of RHCOS tools
+  stat:
+    path: "{{ temp_dir }}/coreos/{{ item.file }}"
+    register: rhcos_tools
+  with_items:
+    - { file: "openshift-client-linux.tar.gz" }
+    - { file: "openshift-install-linux.tar.gz" }
+  ignore_errors: true
+
+- name: Stop if RHCOS tools are not uploaded for air-gapped installation
+  fail:
+    msg: "Please upload RHCOS tools to download directory"
+  with_items: "{{ rhcos_tools.results }}"
+  when: item.stat.exists == False and internet_type == 'A'
+
+- name: "Download RHCOS tools {{ ocp_release }}"
+  get_url:
+    url: "https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/{{ 'stable-'+ocp_major_release if ocp_minor_release == 'latest' else ocp_release }}/{{ item.item.file }}"
+    dest: "{{ temp_dir }}/coreos"
+    use_proxy: "{{ 'yes' if internet_type == 'P' else 'no' }}"
+  with_items: "{{ rhcos_tools.results }}"
+  when: item.stat.exists == False and internet_type != 'A'
+
+- name: Unpack OCP tools
+  shell:
+    cmd: "tar xf {{ temp_dir }}/coreos/{{ item.src }} -C /usr/local/bin"
+    warn: no
+  with_items:
+    - { src: "openshift-client-linux.tar.gz" }
+    - { src: "openshift-install-linux.tar.gz" }
+
+- name: Define base and ocp domain
+  set_fact:
+    base_domain: "{{ domain.split('.')[1:] | join('.') }}"
+    ocp_domain: "{{ domain.split('.')[0] }}"
+
+- name: Create local repo authentication string
+  shell:
+    cmd: "echo -n '{{ repo_user }}:{{ repo_user_password }}' | base64 -w0"
+  register: repo_cred_base64
+  when: internet_type == 'A'
+
+- name: Copy local image repository certificate into variable
+  shell:
+    cmd: "cat /opt/registry/certs/bastion.repo.crt | awk '{print \"  \"$0}'"
+  register: repo_cert
+  when: internet_type == 'A'
+
+- name: Create OCP config file in air-gapped env
+  template:
+    src: install-config-air-gapped.j2
+    dest: ../ocp/install-config.yaml
+  vars:
+    n_workers: "{{ worker_ip|default([])|length+ocs_ip|default([])|length }}"
+    n_masters: "{{ master_ip|length }}"
+  when: internet_type == 'A'
+
+- name: Create OCP config for standard deployment
+  template:
+    src: install-config.j2
+    dest: ../ocp/install-config.yaml
+  vars:
+    n_workers: "{{ worker_ip|default([])|length+ocs_ip|default([])|length }}"
+    n_masters: "{{ master_ip|length }}"
+  when: internet_type == 'D'
+
+- name: Create OCP config file with proxy
+  template:
+    src: install-config-proxy.j2
+    dest: ../ocp/install-config.yaml
+  vars:
+    n_workers: "{{ worker_ip|default([])|length+ocs_ip|default([])|length }}"
+    n_masters: "{{ master_ip|length }}"
+  when: internet_type == 'P'
+

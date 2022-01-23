@@ -172,7 +172,7 @@
     - name: Set ICS installation variables from env
       set_fact:
         ics_version_hint: "{{ lookup('env','GI_ICS_VERSION') }}"
-        ics_operands_arr: "{{ lookup('env', 'GI_ICS_OPERANDS').split(',') }}"
+        ics_operands: "{{ lookup('env', 'GI_ICS_OPERANDS').split(',') }}"
         ics_dedicated_nodes: "{{ lookup('env', 'GI_ICS_NODES').split(',') }}"
       when: install_ics == 'Y' 
 
@@ -180,7 +180,7 @@
       fail: msg="Variable {{ item.name }} is not set"
       loop:
         - { name: "GI_ICS_VERSION", value: "{{ ics_version_hint }}" }
-        - { name: "GI_ICS_OPERANDS", value: "{{ ics_operands_arr }}" }
+        - { name: "GI_ICS_OPERANDS", value: "{{ ics_operands }}" }
         - { name: "GI_ICS_NODES", value: "{{ ics_dedicated_nodes }}" }
       when: install_ics == 'Y' and item.value == ""
 

@@ -195,8 +195,13 @@
 
     - name: ICS size
       set_fact:
-        ics_size_hint: "{{ 'S' if gi_size == 'values-dev' else 'S' if gi_size == 'values-poc-lite' else 'M' }}"
+        ics_size_hint: "{{ 'S' if gi_size == 'values-dev' else 'M' }}"
       when: install_gi == 'Y'
+
+    - name: ICS size
+      set_fact:
+        ics_size_hint: 'S'
+      when: install_gi == 'N' #add possibility to select ICS size
 
     - name: Set ICS installation variables
       set_fact:

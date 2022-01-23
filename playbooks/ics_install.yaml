@@ -127,3 +127,35 @@
   retries: 30
   delay: 10
 
+- name: Subscribe ICS operator
+  shell:
+    cmd: "oc apply -f ../scripts/ics_subscription.yaml"
+
+- name: Wait for ICS csv
+  shell:
+    cmd: "oc -n common-service get csv|grep ibm-common-service-operator|grep Succeeded|wc -l"
+  register: ics_csv_status
+  until: "ics_csv_status.stdout == \"1\""
+  retries: 30
+  delay: 10
+
+- name: Wait for ICS crd's
+  shell:
+    cmd: "oc get crd | grep operandrequest|wc -l"
+  register: ics_crd_status
+  until: "ics_crd_status.stdout == \"1\""
+  retries: 30
+  delay: 10
+
+- name: Set ICS deployment size
+  shell:
+    cmd: "oc patch commonservice common-service -n ibm-common-services --type=\"json\" -p='[{\"op\": \"replace\", \"path\": \"/spec/size\", \"value\": \"{{ ics_size }}\"}]'"
+
+- name: Wait for deployment size change
+  shell:
+    cmd: "oc get commonservice common-service -n ibm-common-services -o json|jq -r .status.phase"
+  register: ics_commonservice_status
+  until: "ics_commonservice_status.stdout == \"Succeeded\""
+  retries: 30
+  delay: 10
+

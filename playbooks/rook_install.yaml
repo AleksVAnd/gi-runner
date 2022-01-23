@@ -58,9 +58,9 @@
     src: "'rook-toolbox.j2' if internet_type != 'A' else 'rook-toolbox-offline.j2'"
     dest: "{{ temp_dir }}/rook/rook-toolbox.yaml"
 
- - name: Deploy rook toolbox
-    shell:
-      cmd: "oc apply -f {{ temp_dir }}/rook/rook-toolbox.yaml"
+- name: Deploy rook toolbox
+  shell:
+    cmd: "oc apply -f {{ temp_dir }}/rook/rook-toolbox.yaml"
 
 - name: Configure rook operator
   shell:

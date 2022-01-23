@@ -203,6 +203,7 @@
         ics_version: "{{ ics_versions[ics_version_hint|int] }}"
         ics_case: "{{ ics_cases[ics_version_hint|int] }}"
         ics_size: "{{ 'small' if ics_size_hint == 'S' else 'medium' if ics_size_hint == 'M' else 'large' }}"
+        ics_registry: "{{ 'docker.io/ibmcom' if ics_version_hint|int < 7 else 'icr.io/cpopen' }}" #check when ICS supported changed
       when: install_ics == 'Y'
 
     - name: Set GI installation variables

@@ -628,6 +628,12 @@
   register: repo_cert
   when: internet_type == 'A'
 
+- name: Copy CA certificate into variable
+  shell:
+    cmd: "cat {{ ocp_ca }} | awk '{print \"  \"$0}'"
+  register: ocp_ca_cert
+  when: ocp_ext_ingress == 'Y'
+
 - name: Create OCP config file in air-gapped env
   template:
     src: install-config-air-gapped.j2

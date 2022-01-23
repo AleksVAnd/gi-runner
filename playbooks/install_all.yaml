@@ -25,6 +25,9 @@
     dhcp_range_stop:  "{{ lookup('env','GI_DHCP_RANGE_STOP') }}"
     bas_name: "{{ lookup('env','GI_BASTION_NAME') }}"
     boot_name: "{{ lookup('env','GI_BOOTSTRAP_NAME') }}"
+    ocp_ext_ingress: "{{ lookup('env','GI_OCP_IN') }}"
+    ics_ext_ingress: "{{ lookup('env','GI_ICS_IN') }}"
+    gi_ext_ingress: "{{ lookup('env','GI_GI_IN') }}"
 
 
   tasks:
@@ -51,6 +54,9 @@
         - { name: "GI_DHCP_RANGE_STOP", value: "{{ dhcp_range_stop }}" }
         - { name: "GI_BASTION_NAME", value: "{{ bas_name }}" }
         - { name: "GI_BOOTSTRAP_NAME", value: "{{ boot_name }}" }
+        - { name: "GI_OCP_IN", value: "{{ ocp_ext_ingress }}" }
+        - { name: "GI_ICS_IN", value: "{{ ics_ext_ingress }}" }
+        - { name: "GI_GI_IN", value: "{{ gi_ext_ingress }}" }
 
     - name: Set parameters for air-gapped installation
       set_fact:
@@ -116,6 +122,21 @@
       set_fact:
         nodes: "{{ worker_name|default([])+ocs_name|default([]) }}"
         ips: "{{ worker_ip|default([])+ocs_ip|default([]) }}"
+
+    - name: Set OCP ingress cert variables
+      set_fact:
+        ocp_ca: "{{ lookup('env', 'GI_OCP_IN_CA') }}"
+        ocp_cert: "{{ lookup('env', 'GI_OCP_IN_CERT') }}"
+        ocp_key: "{{ lookup('env', 'GI_OCP_IN_KEY') }}"
+      when: ocp_ext_ingress == 'Y'
+
+    - name: Check OCP ingress cert variables
+      fail: msg="Variable {{ item.name }} is not set"
+      loop:
+        - { name: "GI_OCP_IN_CA", value: "{{ ocp_ca }}" }
+        - { name: "GI_OCP_IN_CERT", value: "{{ ocp_cert }}" }
+        - { name: "GI_OCP_IN_KEY", value: "{{ ocp_key }}" }
+      when: ocp_ext_ingress == 'Y' and item.value == ""
 
     - name: Setup bastion
       include: setup_bastion.yaml

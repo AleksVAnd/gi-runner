@@ -1,14 +1,6 @@
 - hosts: bastion
   vars:
-    internet_type: "{{ lookup('env','GI_INTERNET_ACCESS') }}"
-    domain: "{{ lookup('env','GI_DOMAIN') }}"
-    ics_version_hint: "{{ lookup('env','GI_ICS_VERSION') }}"
-    ics_versions: [ "3.7.4","3.8.1","3.9.1","3.10.0","3.11.0","3.12.1","3.13.0", "3.14.2" ]
-    ics_cases: [ "ibm-cp-common-services-1.3.4.tgz","ibm-cp-common-services-1.4.1.tgz","ibm-cp-common-services-1.5.1.tgz","ibm-cp-common-services-1.6.0.tgz","ibm-cp-common-services-1.7.0.tgz","ibm-cp-common-services-1.8.1.tgz","ibm-cp-common-services-1.9.0.tgz", "ibm-cp-common-services-1.10.2.tgz" ]
-    ics_operands: "{{ lookup('env','GI_ICS_OPERANDS').split(',') }}"
     ics_admin_password: "{{ lookup('env','GI_ICSADMIN_PWD') }}"
-    bas_ip:  "{{ lookup('env','GI_BASTION_IP') }}"
-    install_gi:  "{{ lookup('env','GI_INSTALL_GI') }}"
     ics_ext_ingress: "{{ lookup('env','GI_ICS_IN') }}"
   
   tasks:
@@ -16,13 +8,9 @@
     fail: msg="Variable {{ item.name }} is not set"
     when: item.value == ""
     loop:
-      - { name: "GI_INTERNET_ACCESS", value: "{{ internet_type }}" }
-      - { name: "GI_DOMAIN", value: "{{ domain }}" }
       - { name: "GI_ICS_VERSION", value: "{{ ics_version_hint }}" }
       - { name: "GI_ICS_OPERANDS", value: "{{ ics_operands }}" }
-      - { name: "GI_BASTION_IP", value: "{{ bas_ip }}" }
       - { name: "GI_ICSADMIN_PWD", value: "{{ ics_admin_password }}" }
-      - { name: "GI_INSTALL_GI", value: "{{ install_gi }}" }
       - { name: "GI_ICS_IN", value: "{{ ics_ext_ingress }}" }
 
   - name: Set parameters for ICS with GI (part1)
@@ -55,43 +43,19 @@
     loop:
       - { name: "GI_ICS_SIZE", value: "{{ ics_size_hint }}" }
 
-  - name: Set ICS installation variables
-    set_fact:
-      ics_operator_namespace: "common-service"
-      ics_case_name: "ibm-cp-common-services"
-      ics_case_inventory_setup: "ibmCommonServiceOperatorSetup"
-      ics_version: "{{ ics_versions[ics_version_hint|int] }}"
-      ics_case: "{{ ics_cases[ics_version_hint|int] }}"
-      ics_size: "{{ 'small' if ics_size_hint == 'S' else 'medium' if ics_size_hint == 'M' else 'large' }}"
-      ics_operands_arr: "{{ lookup('env', 'GI_ICS_OPERANDS').split(',') }}"
-
-  - name: Set ICS nodes
-    set_fact:
-      ics_dedicated_nodes: "{{ lookup('env', 'GI_ICS_NODES').split(',') }}"
-
   - name: Set GI installation variables
     set_fact:
-      gi_case_inventory_setup: "install"
       gi_case_archive: "{{ 'ibm-guardium-insights-2.0.0.tgz' if gi_version_index == '0' else 'ibm-guardium-insights-2.0.1.tgz' if gi_version_index == '1' else 'ibm-guardium-insights-2.0.2.tgz' if gi_version_index == '2' else 'ibm-guardium-insights-2.1.0.tgz' if gi_version_index == '3' else 'ibm-guardium-insights-2.1.2.tgz'}}"
     when: internet_type == 'A' and install_gi == 'Y'
 
   - name: Set parameters for air-gapped installation
     set_fact:
-      archives_dir:  "{{ lookup('env','GI_ARCHIVES_DIR') }}"
-      repo_user:  "{{ lookup('env','GI_REPO_USER') }}"
-      repo_user_password:  "{{ lookup('env','GI_REPO_USER_PWD') }}"
       ics_registry: "{{ 'ics_registry-'+ics_version+'.tar' if install_gi == 'N' else 'gi_registry-'+gi_version+'.tar' }}"
       ics_manifest: "{{ 'gi_offline/*' if install_gi == 'Y' else 'ics_offline/*' }}"
       offline_archive: "{{ 'ics_images.tar' if install_gi == 'N' else 'gi_images.tar' }}"
       offline_inventory: "{{ '../gi-temp/ics_offline' if install_gi == 'N' else '../gi-temp/gi_offline' }}"
     when: internet_type == 'A'
 
-  - name: Check configuration parameters for air-gapped installation
-    fail: msg="Variable {{ item.name }} is not set"
-    when: internet_type == 'A' and item.value == ""
-    loop:
-      - { name: "GI_ARCHIVES_DIR", value: "{{ archives_dir }}" }
-      - { name: "GI_REPO_USER", value: "{{ repo_user }}" }
       - { name: "GI_REPO_USER_PWD", value: "{{ repo_user_password }}" }
 
   - name: Set endpoint cert variables
@@ -108,89 +72,6 @@
       - { name: "GI_ICS_IN_CA", value: "{{ ics_ca }}" }
       - { name: "GI_ICS_IN_CERT", value: "{{ ics_cert }}" }
       - { name: "GI_ICS_IN_KEY", value: "{{ ics_key }}" }
-
-  - name: Create ICS operator namespace
-    shell:
-      cmd: "oc create namespace {{ ics_operator_namespace }} || echo 'Namespace exists'"
-    ignore_errors: yes
-
-  - name: Label ICS nodes
-    shell:
-      cmd: "oc label node {{ item }}.{{ domain }} ics_role=yes --overwrite=true"
-    with_items: "{{ ics_dedicated_nodes|list }}"
-    when: ics_dedicated_nodes|length > 2
-
-  - name: Create ICS namespace with node selector
-    shell:
-      cmd: "{{ item }}"
-    with_items:
-      - oc create namespace ibm-common-services || echo "Namespace exists"
-      - "oc patch namespace ibm-common-services -p '{\"metadata\":{\"annotations\": {\"scheduler.alpha.kubernetes.io/node-selector\": \"ics_role=yes\"}}}'"
-    when: ics_dedicated_nodes|length > 2
-
-  - name: Extract cloudctl and manifest from archive
-    shell:
-      cmd: "tar -C ../gi-temp -xf {{ archives_dir }}/{{ ics_registry }} cloudctl-linux-amd64.tar.gz {{ ics_manifest }}"
-    when: internet_type == 'A'
-  
-  - name: Check presence of cloudctl tool
-    stat:
-      path: "../gi-temp/{{ item.file }}"
-    register: cloudctl_tool
-    with_items:
-      - { file: "cloudctl-linux-amd64.tar.gz" }
-    ignore_errors: true
-
-  - name: Stop if cloudct tool is not uploaded for air-gapped installation
-    fail:
-      msg: "Please upload cloud tool to download directory"
-    with_items: "{{ cloudctl_tool.results }}"
-    when: item.stat.exists == False and internet_type == 'A'
-
-  - name: "Download cloud tool"
-    get_url:
-      url: "https://github.com/IBM/cloud-pak-cli/releases/latest/download/cloudctl-linux-amd64.tar.gz"
-      dest: "../gi-temp"
-      use_proxy: "{{ 'yes' if internet_type == 'P' else 'no' }}"
-    when: internet_type != 'A'
-
-  - name: Unpack cloudctl tools
-    shell:
-      cmd: tar xf ../gi-temp/{{ item.src }} -C /usr/local/bin
-      warn: no
-    with_items:
-      - { src: "cloudctl-linux-amd64.tar.gz" }
-
-  - name: Standarize cloudctl name
-    command: mv /usr/local/bin/cloudctl-linux-amd64 /usr/local/bin/cloudctl
-
-  - name: Set correct rights for RHCOS tools in /usr/local/bin
-    file:
-      path: "/usr/local/bin/{{ item.file }}"
-      owner: root
-      group: root
-      mode: 0755
-    with_items:
-      - { file: "cloudctl" }
-
-  - name: Stop portable registry
-    shell:
-      cmd: "{{ item }}"
-    loop:
-      - podman stop bastion-registry
-    when: internet_type == 'A'
-
-  - name: Extract registry
-    shell:
-      cmd: "tar -C /opt/registry -xf {{ archives_dir }}/{{ ics_registry }} data/*"
-    when: internet_type == 'A'
-
-  - name: Start portable registry
-    shell:
-      cmd: "{{ item }}"
-    loop:
-      - podman start bastion-registry
-    when: internet_type == 'A'
 
   - name: Switch ICS inventory to portable registry
     shell:

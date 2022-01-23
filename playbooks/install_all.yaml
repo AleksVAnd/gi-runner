@@ -33,7 +33,6 @@
     ocadmin:  "{{ lookup('env','GI_OCADMIN') }}"
     ocadmin_password:  "{{ lookup('env','GI_OCADMIN_PWD') }}"
     storage_type:  "{{ lookup('env','GI_STORAGE_TYPE') }}"
-    install_ldap:  "{{ lookup('env','GI_INSTALL_LDAP') }}"
 
 
   tasks:
@@ -68,7 +67,6 @@
         - { name: "GI_OCADMIN", value: "{{ ocadmin }}" }
         - { name: "GI_OCADMIN_PWD", value: "{{ ocadmin_password }}" }
         - { name: "GI_STORAGE_TYPE", value: "{{ storage_type }}" }
-        - { name: "GI_INSTALL_LDAP", value: "{{ install_ldap }}" }
 
     - name: Set parameters for air-gapped installation
       set_fact:

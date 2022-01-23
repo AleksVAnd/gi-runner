@@ -42,7 +42,7 @@
 - pause:
     seconds: 30
 
-- name: Check cluster nodes health after proxy certificate change
+- name: Check cluster nodes health after image registry setup change
   shell: ../scripts/check_cluster_health_operators.sh
   register: cluster_health_operators
   until: cluster_health_operators.stdout == "0"

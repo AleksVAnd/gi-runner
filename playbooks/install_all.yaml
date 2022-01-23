@@ -273,3 +273,7 @@
     - name: Install ICS
       include: ics_install.yaml
       when: skip_phase|int < 4 and install_ics == 'Y'
+
+    - name: Install GI
+      include: gi_install.yaml
+      when: skip_phase|int < 5 and install_gi == 'Y'

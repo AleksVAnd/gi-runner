@@ -27,7 +27,7 @@
     boot_name: "{{ lookup('env','GI_BOOTSTRAP_NAME') }}"
     ocp_ext_ingress: "{{ lookup('env','GI_OCP_IN') }}"
     ics_ext_ingress: "{{ lookup('env','GI_ICS_IN') }}"
-    gi_ext_ingress: "{{ lookup('env','GI_GI_IN') }}"
+    gi_ext_ingress: "{{ lookup('env','GI_IN') }}"
 
 
   tasks:
@@ -56,7 +56,7 @@
         - { name: "GI_BOOTSTRAP_NAME", value: "{{ boot_name }}" }
         - { name: "GI_OCP_IN", value: "{{ ocp_ext_ingress }}" }
         - { name: "GI_ICS_IN", value: "{{ ics_ext_ingress }}" }
-        - { name: "GI_GI_IN", value: "{{ gi_ext_ingress }}" }
+        - { name: "GI_IN", value: "{{ gi_ext_ingress }}" }
 
     - name: Set parameters for air-gapped installation
       set_fact:

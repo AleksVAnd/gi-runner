@@ -1,3 +1,9 @@
+- name: Set parameters for air-gapped installation
+  set_fact:
+    offline_inventory: "{{ 'gi_arch' if install_gi == 'Y' else 'ics_arch' }}"
+    ics_manifest: "{{ 'gi_offline/*' if install_gi == 'Y' else 'ics_offline/*' }}"
+  when: internet_type == 'A'
+
 - name: Create ICS operator namespace
   shell:
     cmd: "oc create namespace {{ ics_operator_namespace }} || echo 'Namespace exists'"
@@ -17,3 +23,33 @@
     - "oc patch namespace ibm-common-services -p '{\"metadata\":{\"annotations\": {\"scheduler.alpha.kubernetes.io/node-selector\": \"ics_role=yes\"}}}'"
   when: ics_dedicated_nodes|length > 2
 
+- name: Check presence of cloudctl tool
+  stat:
+    path: "{{ temp_dir }}/offline_inventory/{{ item.file }}"
+  register: cloudctl_tool
+  with_items:
+    - { file: "cloudctl-linux-amd64.tar.gz" }
+  ignore_errors: true
+
+- name: Stop if cloudct tool is not uploaded for air-gapped installation
+  fail:
+    msg: "Please upload cloud tool to download directory"
+  with_items: "{{ cloudctl_tool.results }}"
+  when: item.stat.exists == False and internet_type == 'A'
+
+- name: "Download cloud tool"
+  get_url:
+    url: "https://github.com/IBM/cloud-pak-cli/releases/latest/download/cloudctl-linux-amd64.tar.gz"
+    dest: "{{ temp_dir }}/{{ offline_inventory }}"
+    use_proxy: "{{ 'yes' if internet_type == 'P' else 'no' }}"
+  when: internet_type != 'A'
+
+- name: Unpack cloudctl tools
+  shell:
+    cmd: "tar xf {{ temp_dir }}/{{ offline_inventory }}/{{ item.src }} -C /usr/local/bin"
+    warn: no
+  with_items:
+    - { src: "cloudctl-linux-amd64.tar.gz" }
+
+- name: Standarize cloudctl name
+  command: mv /usr/local/bin/cloudctl-linux-amd64 /usr/local/bin/cloudctl

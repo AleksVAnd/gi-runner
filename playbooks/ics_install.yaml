@@ -25,7 +25,7 @@
 
 - name: Check presence of cloudctl tool
   stat:
-    path: "{{ temp_dir }}/offline_inventory/{{ item.file }}"
+    path: "{{ temp_dir }}/{{ offline_inventory }}/{{ item.file }}"
   register: cloudctl_tool
   with_items:
     - { file: "cloudctl-linux-amd64.tar.gz" }

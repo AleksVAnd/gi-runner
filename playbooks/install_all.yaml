@@ -146,4 +146,11 @@
       include: setup_bastion.yaml
       when: skip_phase|int < 1
 
+    - debug:
+        msg:
+          - "Bastion prepared for OpenShift boot"
+          - "Start all nodes amd confirm that nodes are correctly boot, then continue"
 
+    - pause:
+        echo: no
+        prompt: "Press ENTER to continue"

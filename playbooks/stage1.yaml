@@ -715,7 +715,7 @@
 - name: Create HA Proxy config file
   template:
     src: haproxy.j2
-    dest: /etc/haproxy/haproxy.main.cfg
+    dest: /etc/haproxy/haproxy.cfg
   vars:
     masters: "{{ master_name|zip(master_ip)|list }}"
     nodes: "{{ worker_name|default([])+ocs_name|default([]) }}"
@@ -726,15 +726,10 @@
 - name: Create HA Proxy config file
   template:
     src: haproxy-no-workers.j2
-    dest: /etc/haproxy/haproxy.main.cfg
+    dest: /etc/haproxy/haproxy.cfg
   vars:
     masters: "{{ master_name|zip(master_ip)|list }}"
   when: is_master_only == 'Y'
-
-- name: Set HA Proxy config file
-  copy:
-    src: /etc/haproxy/haproxy.main.cfg
-    dest: /etc/haproxy/haproxy.cfg
 
 - name: Set SELinux for HA Proxy
   command:

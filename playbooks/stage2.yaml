@@ -49,3 +49,21 @@
   with_items:
     - { name: "matchbox" }
 
+- name: Reconfigure HA Proxy
+  lineinfile:
+    path: /etc/haproxy/haproxy.cfg
+    regexp: "{{ item.regexp }}"
+    state: absent
+  with_items:
+    - { regexp: '^ server m0' }
+
+- name: Restart HA Proxy
+  service:
+    name: haproxy
+    state: restarted
+    enabled: yes
+
+- name: Copy main HA Proxy config file
+  copy:
+    src: /etc/haproxy/haproxy.cfg
+    dest: /etc/haproxy/haproxy.cfg.main

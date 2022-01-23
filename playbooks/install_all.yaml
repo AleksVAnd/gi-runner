@@ -189,3 +189,6 @@
       include: image_registry_setup.yaml
       when: skip_phase|int < 3
 
+    - name: Install ICS
+      include: ics_install.yaml
+      when: skip_phase|int < 4 and ics_install == 'Y'

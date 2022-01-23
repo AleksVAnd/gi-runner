@@ -144,11 +144,11 @@
 
     - name: Setup bastion
       include: stage1.yaml
-      when: skip_phase|int < 2
+      when: skip_phase|int < 1
 
     - name: Wait for OCP boot phase ready
       include: stage2.yaml
-      when: skip_phase|int < 3
+      when: skip_phase|int < 2
 
     - debug:
         msg:

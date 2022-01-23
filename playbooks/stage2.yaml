@@ -1,0 +1,51 @@
+- name: Waiting for OCP cluster deployment (it takes 15-40 minutes)
+  command: openshift-install --dir=../ocp wait-for bootstrap-complete
+
+- name: Check bootstrap availability
+  command:
+    cmd: "ping -c 1 {{ boot_name }}.{{ domain }}"
+  register: boot_availability
+  ignore_errors: yes
+
+- name: Stop bootstrap
+  shell:
+    cmd: "ssh -l core {{ boot_name }}.{{ domain }} -i {{ ssh_key }} sudo shutdown -h +1"
+    remote_user: core
+  args:
+    warn: false
+  when: boot_availability.rc != 2 and boot_availability.rc != 1
+
+- name: Wait for boostrap shutdown
+  pause:
+    minutes: 1
+  when: boot_availability.rc != 2 and boot_availability.rc != 1
+
+- name: Remove DNS records
+  lineinfile:
+    path: /etc/dnsmasq.conf
+    regexp: "{{ item.regexp }}"
+    state: absent
+  with_items:
+    - { regexp: "^address=/matchbox." }
+    - { regexp: "^address=/boot." }
+    - { regexp: "^#TFTP" }
+    - { regexp: "^tftp-" }
+    - { regexp: "^enable-tftp" }
+    - { regexp: "^dhcp-match" }
+    - { regexp: "^dhcp-boot" }
+    - { regexp: "^dhcp-userclass" }
+
+- name: Restart dnsmasq
+  service:
+    name: dnsmasq
+    state: restarted
+    enabled: yes
+
+- name: Stop unused services
+  service:
+    name: "{{ item.name }}"
+    state: stopped
+    enabled: no
+  with_items:
+    - { name: "matchbox" }
+

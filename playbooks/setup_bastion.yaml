@@ -583,7 +583,7 @@
 - name: Check presence of RHCOS tools
   stat:
     path: "{{ temp_dir }}/coreos/{{ item.file }}"
-    register: rhcos_tools
+  register: rhcos_tools
   with_items:
     - { file: "openshift-client-linux.tar.gz" }
     - { file: "openshift-install-linux.tar.gz" }

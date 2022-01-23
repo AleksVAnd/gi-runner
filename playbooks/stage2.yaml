@@ -237,7 +237,7 @@
 - name: Add CM with new CA cert
   shell:
     cmd: "oc create configmap gn-ca --from-file=ca-bundle.crt={{ ocp_ca }} -n openshift-config"
-  when: ocp_ext_ingress == 'Y' and false
+  when: ocp_ext_ingress == 'Y'
 
 - name: Add CA cert to OCP proxy configuration
   shell:

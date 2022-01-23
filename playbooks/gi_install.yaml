@@ -1,0 +1,63 @@
+- name: Label ICS nodes
+  shell:
+    cmd: "oc label node {{ item }}.{{ domain }} gi_role=yes --overwrite=true"
+  with_items: "{{ gi_dedicated_nodes|list }}"
+  when: gi_dedicated_nodes|length > 2
+
+- name: Create ICS namespace with node selector
+  shell:
+    cmd: "{{ item }}"
+  with_items:
+    - "oc create namespace  {{ gi_namespace }} || echo 'Namespace exists'"
+    - "oc patch namespace {{ gi_namespace }} -p '{\"metadata\":{\"annotations\": {\"scheduler.alpha.kubernetes.io/node-selector\": \"gi_role=yes\"}}}'"
+  when: gi_dedicated_nodes|length > 2
+
+- name: Create GI operator namespace
+  shell:
+    cmd: "oc create namespace {{ gi_namespace }}||true"
+
+- name: Save portable repo credentials
+  shell:
+    cmd: "cloudctl case launch --case {{ temp_dir }}/{{ offline_inventory }}/{{ ics_manifest_dir }}/{{ gi_case }} --inventory {{ gi_case_inventory_setup }} --action configure-creds-airgap --namespace {{ gi_namespace }} --tolerance 1 --args \"--registry registry.{{ domain }}:5000 --user {{ repo_user }} --pass {{ repo_user_password }}\""
+  when: internet_type == 'A'
+
+- name: GI download case file
+  shell:
+    cmd: "cloudctl case save --case https://github.com/IBM/cloud-pak/raw/master/repo/case/{{ gi_case_archive }} --outputdir {{ temp_dir }}/{{ offline_inventory }}/{{ ics_manifest_dir }} --tolerance 1"
+  when: internet_type != 'A'
+
+- name: GI preinstall task
+  shell:
+    cmd: "cloudctl case launch --case {{ temp_dir }}/{{ offline_inventory }}/{{ ics_manifest_dir }}/{{ gi_case }} --inventory {{ gi_case_inventory_setup }} --action pre-install --namespace {{ gi_namespace }} --tolerance 1 --args \"-n {{ gi_namespace }} -a admin -p {{ ics_admin_password}} -h {{ db2_nodes_list }} -l true{{ add_options1 }}{{ add_options2 }}\""
+
+- name: Install GI catalog in air-gapped
+  shell:
+    cmd: "cloudctl case launch --case {{ temp_dir }}/{{ offline_inventory }}/{{ ics_manifest_dir }}/{{ gi_case }} --inventory {{ gi_case_inventory_setup }} --action install-catalog --namespace openshift-marketplace --tolerance 1 --args \"--registry registry.{{ domain }}:5000 --inputDir {{ temp_dir }}/{{ offline_inventory }}/{{ ics_manifest_dir }}\""
+  when: internet_type == 'A'
+
+- name: Install GI catalog online (3.0.0)
+  shell:
+    cmd: "cloudctl case launch --case {{ temp_dir }}/{{ offline_inventory }}/{{ ics_manifest_dir }}/{{ gi_case }} --inventory {{ gi_case_inventory_setup }} --action install-catalog --namespace openshift-marketplace --tolerance 1 --args \"--registry docker.io\""
+  when: internet_type != 'A' and gi_version == '3.0.0'
+
+- name: Install GI catalog online (3.0.1+)
+  shell:
+    cmd: "cloudctl case launch --case {{ temp_dir }}/{{ offline_inventory }}/{{ ics_manifest_dir }}/{{ gi_case }} --inventory {{ gi_case_inventory_setup }} --action install-catalog --namespace openshift-marketplace --tolerance 1"
+  when: internet_type != 'A' and gi_version != '3.0.0'
+
+- name: Wait for GI catalog (part1)
+  shell:
+    cmd: "oc get pods -n openshift-marketplace|grep ibm-db2uoperator-catalog|grep 1/1|grep Running|wc -l"
+  register: db2_catalog_status
+  until: "db2_catalog_status.stdout == \"1\""
+  retries: 30
+  delay: 10
+
+- name: Wait for GI catalog (part2)
+  shell:
+    cmd: "oc get pods -n openshift-marketplace|grep ibm-cloud-databases-redis-operator-catalog|grep 1/1|grep Running|wc -l"
+  register: redis_catalog_status
+  until: "redis_catalog_status.stdout == \"1\""
+  retries: 30
+  delay: 10
+

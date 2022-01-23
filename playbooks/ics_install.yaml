@@ -1,9 +1,3 @@
-- name: Set parameters for air-gapped installation
-  set_fact:
-    offline_inventory: "{{ 'gi_arch' if install_gi == 'Y' else 'ics_arch' }}"
-    ics_manifest_dir: "{{ 'gi_offline' if install_gi == 'Y' else 'ics_offline' }}"
-  when: internet_type == 'A'
-
 - name: Create ICS operator namespace
   shell:
     cmd: "oc create namespace {{ ics_operator_namespace }} || echo 'Namespace exists'"

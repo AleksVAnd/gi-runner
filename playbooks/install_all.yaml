@@ -201,6 +201,8 @@
       set_fact:
         gi_version_index:  "{{ lookup('env','GI_VERSION') }}"
         gi_size:  "{{ lookup('env','GI_SIZE_GI') }}"
+        gi_dedicated_nodes: "{{ lookup('env', 'GI_GI_NODES').split(',') }}"
+        gi_namespace: "{{ lookup('env','GI_NAMESPACE_GI') }}"
       when: install_gi == 'Y'
 
     - name: Check GI variables
@@ -208,6 +210,8 @@
       loop:
         - { name: "GI_VERSION", value: "{{ gi_version_index }}" }
         - { name: "GI_SIZE_GI", value: "{{ gi_size }}" }
+        - { name: "GI_GI_NODES", value: "{{ gi_dedicated_nodes }}" }
+        - { name: "GI_NAMESPACE_GI", value: "{{ gi_namespace }}" }
       when: install_gi == 'Y' and item.value == ""
 
     - name: ICS size
@@ -233,6 +237,12 @@
         gi_version: "{{ gi_versions[gi_version_index|int] }}"
         gi_case: "{{ gi_cases[gi_version_index|int] }}"
       when: internet_type == 'A' and install_gi == 'Y'
+
+    - name: Set parameters for air-gapped installation
+      set_fact:
+        offline_inventory: "{{ 'gi_arch' if install_gi == 'Y' else 'ics_arch' }}"
+        ics_manifest_dir: "{{ 'gi_offline' if install_gi == 'Y' else 'ics_offline' }}"
+      when: internet_type == 'A' and install_ics = 'Y'
 
     - name: Set rook nodes
       set_fact:

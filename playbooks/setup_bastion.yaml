@@ -668,3 +668,84 @@
     n_masters: "{{ master_ip|length }}"
   when: internet_type == 'P'
 
+- name: Add RHN Pull Secret - ansible replaces /" to /'
+  shell:
+    cmd: "cat ../scripts/pull_secret.tmp >> ../ocp/install-config.yaml"
+  when: internet_type != 'A'
+
+- name: Create manifests files
+  command:
+    cmd: "{{ item.cmd }}"
+  with_items:
+    - { cmd: "openshift-install create manifests --dir=../ocp" }
+
+- name: Create ignition files
+  command:
+    cmd: "{{ item.cmd }}"
+  with_items:
+    - { cmd: "openshift-install create ignition-configs --dir=../ocp" }
+
+- name: Copy ignition files to matchbox
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: matchbox
+    mode: 0755
+  with_items:
+    - { src: "../ocp/bootstrap.ign", dest: "/var/lib/matchbox/ignition/" }
+    - { src: "../ocp/master.ign", dest: "/var/lib/matchbox/ignition/" }
+    - { src: "../ocp/worker.ign", dest: "/var/lib/matchbox/ignition/" }
+
+- name: Check original HA Proxy config file existence
+  stat:
+    path: "/etc/haproxy/haproxy.cfg.orig"
+  register: haproxy_config_presence
+
+- name: Restore original HA Proxy config file
+  copy:
+    dest: "/etc/haproxy/haproxy.cfg"
+    src: "/etc/haproxy/haproxy.cfg.orig"
+  when: haproxy_config_presence.stat.exists == true
+
+- name: Copy original HA Proxy config file
+  copy:
+    src: /etc/haproxy/haproxy.cfg
+    dest: /etc/haproxy/haproxy.cfg.orig
+
+- name: Create HA Proxy config file
+  template:
+    src: haproxy.j2
+    dest: /etc/haproxy/haproxy.main.cfg
+  vars:
+    masters: "{{ master_name|zip(master_ip)|list }}"
+    nodes: "{{ worker_name|default([])+ocs_name|default([]) }}"
+    ips: "{{ worker_ip|default([])+ocs_ip|default([]) }}"
+    workers: "{{ nodes|zip(ips)|list }}"
+  when: is_master_only == 'N'
+
+- name: Create HA Proxy config file
+  template:
+    src: haproxy-no-workers.j2
+    dest: /etc/haproxy/haproxy.main.cfg
+  vars:
+    masters: "{{ master_name|zip(master_ip)|list }}"
+  when: is_master_only == 'Y'
+
+- name: Set HA Proxy config file
+  copy:
+    src: /etc/haproxy/haproxy.main.cfg
+    dest: /etc/haproxy/haproxy.cfg
+
+- name: Set SELinux for HA Proxy
+  command:
+    cmd: "{{ item.cmd }}"
+  with_items:
+    - { cmd: "setsebool -P haproxy_connect_any=1" }
+    - { cmd: "semanage permissive -a haproxy_t" }
+
+- name: Start and enable HA Proxy
+  service:
+    name: haproxy
+    state: restarted
+    enabled: yes
+

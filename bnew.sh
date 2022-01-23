@@ -169,6 +169,7 @@ function select_gi_version() {
 		[[ "$nd_ics_install" == 'Y' ]] && select_ics_version || save_variable GI_ICS_VERSION $ics_version_selected
 	else
 		display_default_ics
+		save_variable GI_ICS_VERSION $ics_version_selected
         	msg "In case of air-gapped installation you must install the bundled ICS version" 8
 	fi
 }

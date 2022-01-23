@@ -50,7 +50,7 @@
 
 - name: Configure rook operator file
   template:
-    src: "'rook-latest-operator.j2' if internet_type != 'A' else rook-latest-operator-offline.j2"
+    src: "'rook-latest-operator.j2' if internet_type != 'A' else 'rook-latest-operator-offline.j2'"
     dest: "{{ temp_dir }}/rook/rook-latest-operator.yaml"
 
 - name: Configure rook toolbox

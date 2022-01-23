@@ -90,7 +90,7 @@
       path: "{{ temp_dir }}/ocadmin.htpasswd"
       name: "{{ ocadmin }}"
       password: "{{ ocadmin_password }}"
-when: is_htpasswd_secret.stdout|int == 0
+  when: is_htpasswd_secret.stdout|int == 0
 
 - name: Wait 1 minute before adding admin
   pause:

@@ -25,7 +25,7 @@ sshKey: {{ ssh_pub_key.stdout }}
 additionalTrustBundle: |
 {{ repo_cert.stdout }}
 {% if ocp_ext_ingress == 'Y' %}
-{{ ca_cert.stdout }}
+{{ ocp_ca_cert.stdout }}
 {% endif %}
 imageContentSources:
 - mirrors:

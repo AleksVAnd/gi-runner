@@ -180,6 +180,8 @@
 - name: Clean manifests in temp directory
   shell:
     cmd: "rm -rf {{ temp_dir }}/olm_copy"
+  args:
+    warn: false
   when: internet_type == 'A'
 
 - name: Configure rook-ceph imagecontentsourcepolicy files

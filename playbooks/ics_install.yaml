@@ -1,7 +1,7 @@
 - name: Set parameters for air-gapped installation
   set_fact:
     offline_inventory: "{{ 'gi_arch' if install_gi == 'Y' else 'ics_arch' }}"
-    ics_manifest: "{{ 'gi_offline/*' if install_gi == 'Y' else 'ics_offline/*' }}"
+    ics_manifest_dir: "{{ 'gi_offline' if install_gi == 'Y' else 'ics_offline' }}"
   when: internet_type == 'A'
 
 - name: Create ICS operator namespace
@@ -65,12 +65,12 @@
 
 - name: Switch ICS inventory to portable registry
   shell:
-    cmd: "cloudctl case launch --case {{ temp_dir }}/{{ offline_inventory }}/{{ ics_case }} --inventory {{ ics_case_inventory_setup }} --action configure-cluster-airgap --namespace {{ ics_operator_namespace }}  --args \"--registry registry.{{ domain }}:5000 --user {{ repo_user }} --pass {{ repo_user_password }} --inputDir {{ offline_inventory }}\""
+    cmd: "cloudctl case launch --case {{ temp_dir }}/{{ offline_inventory }}/{{ ics_manifest_dir }}/{{ ics_case }} --inventory {{ ics_case_inventory_setup }} --action configure-cluster-airgap --namespace {{ ics_operator_namespace }}  --args \"--registry registry.{{ domain }}:5000 --user {{ repo_user }} --pass {{ repo_user_password }} --inputDir {{ temp_dir }}/{{ offline_inventory }}/{{ ics_manifest_dir }}\""
   when: internet_type == 'A' and install_gi == 'N'
 
 - name: Switch GI inventory to portable registry
   shell:
-    cmd: "cloudctl case launch --case {{ offline_inventory }}/{{ gi_case }} --inventory {{ gi_case_inventory_setup }} --action configure-cluster-airgap --namespace {{ ics_operator_namespace }} --tolerance 1 --args \"--registry registry.{{ domain }}:5000 --user {{ repo_user }} --pass {{ repo_user_password }} --inputDir {{ offline_inventory }}\""
+    cmd: "cloudctl case launch --case {{ temp_dir }}/{{ offline_inventory }}/{{ ics_manifest_dir }}/{{ gi_case }} --inventory {{ gi_case_inventory_setup }} --action configure-cluster-airgap --namespace {{ ics_operator_namespace }} --tolerance 1 --args \"--registry registry.{{ domain }}:5000 --user {{ repo_user }} --pass {{ repo_user_password }} --inputDir {{ temp_dir }}/{{ offline_inventory }}/{{ ics_manifest_dir }}\""
   when: internet_type == 'A' and install_gi == 'Y'
 
 - name: Wait for cluster reconfiguration

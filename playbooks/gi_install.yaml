@@ -105,7 +105,7 @@
 
 - name: Deploy GI
   shell:
-    cmd: "oc apply -fi {{ temp_dir }}/gi_arch/gi.yaml"
+    cmd: "oc apply -f {{ temp_dir }}/gi_arch/gi.yaml"
 
 - name: Wait for completion of db2-inst - OOMKilled BUG workaround
   shell: ../scripts/db2_oomkilled.sh

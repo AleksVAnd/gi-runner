@@ -1,20 +1,8 @@
 - hosts: bastion
   vars:
-    internet_type: "{{ lookup('env','GI_INTERNET_ACCESS') }}"
-    domain: "{{ lookup('env','GI_DOMAIN') }}"
-    ics_admin_password: "{{ lookup('env','GI_ICSADMIN_PWD') }}"
-    bas_ip: "{{ lookup('env','GI_BASTION_IP') }}"
-    install_gi: "{{ lookup('env','GI_INSTALL_GI') }}"
-    gi_namespace: "{{ lookup('env','GI_NAMESPACE_GI') }}"
-    db2_nodes_array: "{{ lookup('env','GI_DB2_NODES').split(',') }}"
     gi_deployment_size: "{{ lookup('env','GI_SIZE_GI') }}"
-    storage_type: "{{ lookup('env','GI_STORAGE_TYPE') }}"
     gi_version_index: "{{ lookup('env','GI_VERSION') }}"
-    is_ocs_tainted: "{{ lookup('env','GI_OCS_TAINTED') }}"
-    db2_enc_hint: "{{ lookup('env','GI_DB2_ENCRYPTED') }}"
-    is_master_only:  "{{ lookup('env','GI_MASTER_ONLY') }}"
     stap_supp: "{{ lookup('env','GI_STAP_STREAMING') }}"
-    gi_ext_ingress: "{{ lookup('env','GI_IN') }}"
     gi_ds_size: "{{ lookup('env','GI_DATA_STORAGE_SIZE') }}"
     gi_meta_size: "{{ lookup('env','GI_METADATA_STORAGE_SIZE') }}"
     gi_logs_size: "{{ lookup('env','GI_ACTIVELOGS_STORAGE_SIZE') }}"
@@ -22,25 +10,13 @@
     gi_mongo_meta_size:  "{{ lookup('env','GI_MONGO_METADATA_STORAGE_SIZE') }}"
     gi_kafka_size: "{{ lookup('env','GI_KAFKA_STORAGE_SIZE') }}"
     gi_zookeeper_size:  "{{ lookup('env','GI_ZOOKEEPER_STORAGE_SIZE') }}"
-    db2_tainted: "{{ lookup('env','GI_DB2_TAINTED') }}"
   
   tasks:
   - name: Check other configuration parameters
     fail: msg="Variable {{ item.name }} is not set"
     when: item.value == ""
     loop:
-      - { name: "GI_INTERNET_ACCESS", value: "{{ internet_type }}" }
-      - { name: "GI_DOMAIN", value: "{{ domain }}" }
-      - { name: "GI_BASTION_IP", value: "{{ bas_ip }}" }
-      - { name: "GI_ICSADMIN_PWD", value: "{{ ics_admin_password }}" }
-      - { name: "GI_INSTALL_GI", value: "{{ install_gi }}" }
-      - { name: "GI_NAMESPACE_GI", value: "{{ gi_namespace }}" }
-      - { name: "GI_DB2_NODES", value: "{{ db2_nodes_array }}" }
       - { name: "GI_SIZE_GI", value: "{{ gi_deployment_size }}" }
-      - { name: "GI_STORAGE_TYPE", value: "{{ storage_type }}" }
-      - { name: "GI_VERSION", value: "{{ gi_version_index }}" }
-      - { name: "GI_OCS_TAINTED", value: "{{ is_ocs_tainted }}" }
-      - { name: "GI_DB2_ENCRYPTED", value: "{{ db2_enc_hint }}" }
       - { name: "GI_MASTER_ONLY", value: "{{ is_master_only }}" }
       - { name: "GI_STAP_STREAMING", value: "{{ stap_supp }}" }
       - { name: "GI_IN", value: "{{ gi_ext_ingress }}" }
@@ -51,11 +27,7 @@
       - { name: "GI_MONGO_METADATA_STORAGE_SIZE", value: "{{ gi_mongo_meta_size }}" }
       - { name: "GI_KAFKA_STORAGE_SIZE", value: "{{ gi_kafka_size }}" }
       - { name: "GI_ZOOKEEPER_STORAGE_SIZE", value: "{{ gi_zookeeper_size }}" }
-      - { name: "GI_DB2_TAINTED", value: "{{ db2_tainted }}" }
 
-  - name: Set ICS nodes
-    set_fact:
-      gi_dedicated_nodes: "{{ lookup('env', 'GI_GI_NODES').split(',') }}"
 
   - name: Set parameters for non air-gapped installation
     set_fact:
@@ -68,163 +40,17 @@
     loop:
       - { name: "GI_IBM_SECRET", value: "{{ ibm_secret }}" }
 
-  - name: Set parameters for air-gapped installation
-    set_fact:
-      repo_user:  "{{ lookup('env','GI_REPO_USER') }}"
-      repo_user_password:  "{{ lookup('env','GI_REPO_USER_PWD') }}"
-    when: internet_type == 'A'
-
-  - name: Check configuration parameters for air-gapped installation
-    fail: msg="Variable {{ item.name }} is not set"
-    loop:
-      - { name: "GI_REPO_USER", value: "{{ repo_user }}" }
-      - { name: "GI_REPO_USER_PWD", value: "{{ repo_user_password }}" }
-    when: internet_type == 'A' and item.value == ""
-
-  - name: Set masters array
-    set_fact:
-      master_ip: "{{ lookup('env', 'GI_MASTER_IP').split(',') }}"
-      master_mac: "{{ lookup('env', 'GI_MASTER_MAC_ADDRESS').split(',') }}"
-      master_name: "{{ lookup('env', 'GI_MASTER_NAME').split(',') }}"
-
-  - name: Check master configuration
-    fail: msg="Variable {{ item.name }} is not set"
-    when: item.value == ""
-    loop:
-      - { name: "GI_MASTER_IP", value: "{{ master_ip }}" }
-      - { name: "GI_MASTER_MAC_ADDRESS", value: "{{ master_mac }}" }
-      - { name: "GI_MASTER_NAME", value: "{{ master_name }}" }
-
-  - name: Set OCS array
-    set_fact:
-      ocs_ip: "{{ lookup('env', 'GI_OCS_IP').split(',') }}"
-      ocs_mac: "{{ lookup('env', 'GI_OCS_MAC_ADDRESS').split(',') }}"
-      ocs_name: "{{ lookup('env', 'GI_OCS_NAME').split(',') }}"
-    when: is_ocs_tainted == 'Y'
-
-  - name: Check OCS configuration
-    fail: msg="Variable {{ item.name }} is not set"
-    when: is_ocs_tainted == 'Y' and item.value == ""
-    loop:
-      - { name: "GI_OCS_IP", value: "{{ ocs_ip }}" }
-      - { name: "GI_OCS_MAC_ADDRESS", value: "{{ ocs_mac }}" }
-      - { name: "GI_OCS_NAME", value: "{{ ocs_name }}" }
-
-  - name: Set workers arrays
-    set_fact:
-      worker_ip: "{{ lookup('env', 'GI_WORKER_IP').split(',') }}"
-      worker_mac: "{{ lookup('env', 'GI_WORKER_MAC_ADDRESS').split(',') }}"
-      worker_name: "{{ lookup('env', 'GI_WORKER_NAME').split(',') }}"
-    when: is_master_only == 'N'
-
-  - name: Set workers arrays
-    set_fact:
-      worker_ip: "{{ lookup('env', 'GI_WORKER_IP').split(',') }}"
-      worker_mac: "{{ lookup('env', 'GI_WORKER_MAC_ADDRESS').split(',') }}"
-      worker_name: "{{ lookup('env', 'GI_WORKER_NAME').split(',') }}"
-    when: is_master_only == 'N'
-
-  - name: Iterates all workers in one array
-    vars:
-      nodes: "{{ worker_name|default([])+ocs_name|default([]) }}"
-      ips: "{{ worker_ip|default([])+ocs_ip|default([]) }}"
-    debug:
-      msg: "{{ nodes|zip(ips)|list }}"
-
-  - name: Set endpoint cert variables
-    set_fact:
-      gi_ca: "{{ lookup('env', 'GI_IN_CA') }}"
-      gi_cert: "{{ lookup('env', 'GI_IN_CERT') }}"
-      gi_key: "{{ lookup('env', 'GI_IN_KEY') }}"
-    when: gi_ext_ingress == 'Y'
-
-  - name: Check ICS endpoint cert variables
-    fail: msg="Variable {{ item.name }} is not set"
-    when: gi_ext_ingress == 'Y' and item.value == ""
-    loop:
-      - { name: "GI_IN_CA", value: "{{ gi_ca }}" }
-      - { name: "GI_IN_CERT", value: "{{ gi_cert }}" }
-      - { name: "GI_IN_KEY", value: "{{ gi_key }}" }
 
   - name: Set GI installation variables
     set_fact:
       storage_class_fs: "{{ 'rook-cephfs' if storage_type == 'R' else 'ocs-storagecluster-cephfs' }}"
       storage_class_block: "{{ 'rook-ceph-block' if storage_type == 'R' else 'ocs-storagecluster-ceph-rbd' }}"
-      db2_enc: "{{ 'YES' if db2_enc_hint == 'Y' else 'NO' }}"
-      db2_nodes_list: "{{ db2_nodes_array|product([domain])|map('join','.')|join(',') }}"
-      gi_license: "{{ 'L-TESX-C86NC4' if gi_version_index|int > 2 else 'L-OOLE-C2ASKR' }}"
-      add_options1: "{{ ' -t false' if db2_tainted == 'N' else ' -t true' if db2_tainted == 'Y' else '' }}"
-      add_options2: "{{ ' -c '+gi_ca+' -f '+gi_cert+' -k '+gi_key if gi_ext_ingress == 'Y' else '' }}"
-
-  - name: Label ICS nodes
-    shell:
-      cmd: "oc label node {{ item }}.{{ domain }} gi_role=yes --overwrite=true"
-    with_items: "{{ gi_dedicated_nodes|list }}"
-    when: gi_dedicated_nodes|length > 2
-
-  - name: Create ICS namespace with node selector
-    shell:
-      cmd: "{{ item }}"
-    with_items:
-      - "oc create namespace  {{ gi_namespace }} || echo 'Namespace exists'"
-      - "oc patch namespace {{ gi_namespace }} -p '{\"metadata\":{\"annotations\": {\"scheduler.alpha.kubernetes.io/node-selector\": \"gi_role=yes\"}}}'"
-    when: gi_dedicated_nodes|length > 2
-
-  - name: Create GI operator namespace
-    shell:
-      cmd: "oc create namespace {{ gi_namespace }}||true"
-    when: gi_dedicated_nodes|length < 3
-
-  - name: Save portable repo credentials
-    shell:
-      cmd: "cloudctl case launch --case ../gi-temp/{{ offline_inventory }}/{{ gi_case_archive }} --inventory {{ gi_case_inventory_setup }} --action configure-creds-airgap --namespace {{ gi_namespace }} --tolerance 1 --args \"--registry registry.{{ domain }}:5000 --user {{ repo_user }} --pass {{ repo_user_password }}\""
-    when: internet_type == 'A'
-
-  - name: GI download case file
-    shell:
-      cmd: "cloudctl case save --case https://github.com/IBM/cloud-pak/raw/master/repo/case/{{ gi_case_archive }} --outputdir ../gi-temp/{{ offline_inventory }} --tolerance 1"
-    when: internet_type != 'A'
 
   - name: Link python3 to python
     file:
       src: /usr/bin/python3
       dest: /usr/bin/python
       state: link
-
-  - name: GI preinstall task
-    shell:
-      cmd: "cloudctl case launch --case ../gi-temp/{{ offline_inventory }}/{{ gi_case_archive }} --inventory {{ gi_case_inventory_setup }} --action pre-install --namespace {{ gi_namespace }} --tolerance 1 --args \"-n {{ gi_namespace }} -a admin -p {{ ics_admin_password}} -h {{ db2_nodes_list }} -l true{{ add_options1 }}{{ add_options2 }}\""
-
-  - name: Install GI catalog in air-gapped
-    shell:
-      cmd: "cloudctl case launch --case ../gi-temp/{{ offline_inventory }}/{{ gi_case_archive }} --inventory {{ gi_case_inventory_setup }} --action install-catalog --namespace openshift-marketplace --tolerance 1 --args \"--registry registry.{{ domain }}:5000 --inputDir ../gi-temp/{{ offline_inventory }}\""
-    when: internet_type == 'A'
-
-  - name: Install GI catalog online (3.0.0)
-    shell:
-      cmd: "cloudctl case launch --case ../gi-temp/{{ offline_inventory }}/{{ gi_case_archive }} --inventory {{ gi_case_inventory_setup }} --action install-catalog --namespace openshift-marketplace --tolerance 1 --args \"--registry docker.io\""
-    when: internet_type != 'A' and gi_version == '3.0.0'
-
-  - name: Install GI catalog online (3.0.1+)
-    shell:
-      cmd: "cloudctl case launch --case ../gi-temp/{{ offline_inventory }}/{{ gi_case_archive }} --inventory {{ gi_case_inventory_setup }} --action install-catalog --namespace openshift-marketplace --tolerance 1"
-    when: internet_type != 'A' and gi_version != '3.0.0'
-
-  - name: Wait for GI catalog (part1)
-    shell:
-      cmd: "oc get pods -n openshift-marketplace|grep ibm-db2uoperator-catalog|grep 1/1|grep Running|wc -l"
-    register: db2_catalog_status
-    until: "db2_catalog_status.stdout == \"1\""
-    retries: 30
-    delay: 10
-
-  - name: Wait for GI catalog (part2)
-    shell:
-      cmd: "oc get pods -n openshift-marketplace|grep ibm-cloud-databases-redis-operator-catalog|grep 1/1|grep Running|wc -l"
-    register: redis_catalog_status
-    until: "redis_catalog_status.stdout == \"1\""
-    retries: 30
-    delay: 10
 
   - name: Install GI operators in air-gapped env
     shell:

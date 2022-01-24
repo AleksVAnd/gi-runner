@@ -28,7 +28,7 @@
 
 - name: GI preinstall task
   shell:
-    cmd: "cloudctl case launch --case {{ temp_dir }}/{{ offline_inventory }}/{{ ics_manifest_dir }}/{{ gi_case }} --inventory {{ gi_case_inventory_setup }} --action pre-install --namespace {{ gi_namespace }} --tolerance 1 --args \"-n {{ gi_namespace }} -a admin -p {{ ics_admin_password}} -h {{ db2_nodes_list }} -l true{{ add_options1 }}{{ add_options2 }}\""
+    cmd: "cloudctl case launch --case {{ temp_dir }}/{{ offline_inventory }}/{{ ics_manifest_dir }}/{{ gi_case }} --inventory {{ gi_case_inventory_setup }} --action pre-install --namespace {{ gi_namespace }} --tolerance 1 --args \"-n {{ gi_namespace }} -a admin -p {{ ics_admin_password }} -h {{ db2_nodes_list }} -l true{{ add_options1 }}{{ add_options2 }}\""
 
 - name: Install GI catalog in air-gapped
   shell:

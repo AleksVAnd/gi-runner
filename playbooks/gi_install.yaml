@@ -109,7 +109,7 @@
 
 - name: Wait for completion of db2-inst - OOMKilled BUG workaround
   shell: ../scripts/db2_oomkilled.sh
-  when: gi_version_index > 2
+  when: gi_version_index|int > 2
 
 - name: Wait for initiation of db2u deployment - /dev/tty BUG workaround (part1)
   shell:
@@ -141,4 +141,42 @@
   until: "gi_deployment_status.stdout == \"{{ gi_version }}\""
   retries: 100
   delay: 60
+
+- name: Get ssh service node port
+    shell:
+      cmd: "oc get services -n {{ gi_namespace }} {{ gi_namespace }}-ssh-service -o json|jq .spec.ports[0].nodePort"
+    register: ssh_node_port
+
+  - name: Open ssh-service port on bastion
+    firewalld:
+      port: "{{ item.port }}/{{ item.type }}"
+      permanent: yes
+      immediate: yes
+      state: enabled
+    with_items:
+      - { port: "{{ ssh_node_port.stdout }}", type: "tcp" }
+
+- name: Create HA Proxy config file with ssh-service
+  template:
+    src: haproxy_with_ssh.j2
+    dest: /etc/haproxy/haproxy.cfg.ssh
+  vars:
+    masters: "{{ master_name|zip(master_ip)|list }}"
+    nodes: "{{ worker_name|default([])+ocs_name|default([]) }}"
+    ips: "{{ worker_ip|default([])+ocs_ip|default([]) }}"
+    workers: "{{ nodes|zip(ips)|list }}"
+  when: is_master_only == 'N'
+
+- name: Create HA Proxy config file with ssh-service (no dedicated workers)
+  template:
+    src: haproxy_with_ssh_masters_only.j2
+    dest: /etc/haproxy/haproxy.cfg.ssh
+  vars:
+    masters: "{{ master_name|zip(master_ip)|list }}"
+  when: is_master_only == 'Y'
+
+- name: Restart HA Proxy
+  service:
+    name: haproxy
+    state: restarted
 

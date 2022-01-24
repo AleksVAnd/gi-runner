@@ -271,7 +271,7 @@
       set_fact:
         offline_inventory: "{{ 'gi_arch' if install_gi == 'Y' else 'ics_arch' }}"
         ics_manifest_dir: "{{ 'gi_offline' if install_gi == 'Y' else 'ics_offline' }}"
-      when: internet_type == 'A' and install_ics = 'Y'
+      when: internet_type == 'A' and install_ics == 'Y'
 
     - name: Set rook nodes
       set_fact:

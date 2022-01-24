@@ -185,7 +185,7 @@
 
 - name: Login to ICS
   shell:
-    cmd: "cloudctl login -a https://cp-console.apps.{{ domain }} --skip-ssl-validation -u admin -p '{{ ics_password }}' -n ibm-common-services"
+    cmd: "cloudctl login -a https://cp-console.apps.{{ domain }} --skip-ssl-validation -u admin -p '{{ ics_admin_password }}' -n ibm-common-services"
 
 - name: Extract ICS Access Token
   shell:

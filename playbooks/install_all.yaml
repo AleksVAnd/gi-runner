@@ -396,7 +396,7 @@
           - Update the hosts file on your web browser workstation
           - "{{ bas_ip }} insights.apps.{{ domain }}"
           - "Login to GI console as admin - https://insights.apps.{{ domain }}"
-          - "{{ 'SSH port '+{{ ssh_node_port.stdout }}+' integration with GDP routed and opened on bastion' if skip_phase|int < 5 else ''"
+          - "{{ '' if skip_phase|int > 5 else 'SSH port '+{{ ssh_node_port.stdout }}+' integration with GDP routed and opened on bastion'"
       when: install_gi == 'Y'
 
     - name: LDAP info

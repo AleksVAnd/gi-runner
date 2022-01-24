@@ -163,7 +163,6 @@
         db2_tainted: "{{ lookup('env','GI_DB2_TAINTED') }}"
         gi_ext_ingress: "{{ lookup('env','GI_IN') }}"
         gi_deployment_size: "{{ lookup('env','GI_SIZE_GI') }}"
-        gi_version_index: "{{ lookup('env','GI_VERSION') }}"
         stap_supp: "{{ lookup('env','GI_STAP_STREAMING') }}"
         gi_ds_size: "{{ lookup('env','GI_DATA_STORAGE_SIZE') }}"
         gi_meta_size: "{{ lookup('env','GI_METADATA_STORAGE_SIZE') }}"

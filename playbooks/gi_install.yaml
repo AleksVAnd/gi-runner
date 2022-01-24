@@ -98,3 +98,47 @@
     - { operator_pattern: "guardiuminsights-controller-manager" }
   when: gi_version_index|int > 2
 
+- name: Generate GI deployment file
+  template:
+    src: "gi.j2"
+    dest: "{{ temp_dir }}/gi_arch/gi.yaml"
+
+- name: Deploy GI
+  shell:
+    cmd: "oc apply -fi {{ temp_dir }}/gi_arch/gi.yaml"
+
+- name: Wait for completion of db2-inst - OOMKilled BUG workaround
+  shell: ../scripts/db2_oomkilled.sh
+  when: gi_version_index > 2
+
+- name: Wait for initiation of db2u deployment - /dev/tty BUG workaround (part1)
+  shell:
+    cmd: "oc get sts -n gi|grep db2-db2u|wc -l"
+  register: db2u_initiated
+  until: "db2u_initiated.stdout == \"1\""
+  retries: 80
+  delay: 20
+  when: gi_version == '3.0.0'
+
+- name: Wait for initiation of db2u deployment - /dev/tty BUG workaround (part2)
+  shell:
+    cmd: "oc patch sts c-{{ gi_namespace }}-db2-db2u -p='{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"name\":\"db2u\",\"tty\":false}]}}}}}'"
+  when: gi_version == '3.0.0'
+
+- name: Wait for initiation of db2u deployment - /dev/tty BUG workaround (part3)
+  shell:
+    cmd: "oc get sts -n gi|grep db2-db2u|grep 1/1|wc -l"
+  register: db2u_initiated
+  until: "db2u_initiated.stdout == \"1\""
+  retries: 80
+  delay: 20
+  when: gi_version == '3.0.0'
+
+- name: Wait for successful GI deployment (takes 20-60 minutes)
+  shell:
+    cmd: "oc get guardiuminsights -o json|jq .items[0].status.versions.reconciled|tr -d '\"'"
+  register: gi_deployment_status
+  until: "gi_deployment_status.stdout == \"{{ gi_version }}\""
+  retries: 100
+  delay: 60
+

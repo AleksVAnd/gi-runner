@@ -175,6 +175,10 @@
     masters: "{{ master_name|zip(master_ip)|list }}"
   when: is_master_only == 'Y'
 
+- name: Modify HA Proxy config file
+  shell:
+    cmd: cat /etc/haproxy/haproxy.cfg.ssh >> /etc/haproxy/haproxy.cfg
+
 - name: Restart HA Proxy
   service:
     name: haproxy

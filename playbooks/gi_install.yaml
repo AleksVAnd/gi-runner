@@ -61,3 +61,40 @@
   retries: 30
   delay: 10
 
+- name: Install GI operators in air-gapped env
+  shell:
+    cmd: "cloudctl case launch --case {{ temp_dir }}/{{ offline_inventory }}/{{ ics_manifest_dir }}/{{ gi_case }} --inventory {{ gi_case_inventory_setup }} --action install-operator --namespace {{ gi_namespace }} --tolerance 1 --args \"--registry registry.{{ domain }}:5000 --user {{ repo_user }} --pass {{ repo_user_password }} --secret ibm-entitlement-key\""
+  when: internet_type == 'A'
+
+- name: Install GI operators online
+  shell:
+    cmd: "cloudctl case launch --case {{ temp_dir }}/{{ offline_inventory }}/{{ ics_manifest_dir }}/{{ gi_case }} --inventory {{ gi_case_inventory_setup }} --action install-operator --namespace {{ gi_namespace }} --tolerance 1 --args \"--registry cp.icr.io --user cp --pass {{ ibm_secret }} --secret ibm-entitlement-key\""
+  when: internet_type != 'A'
+
+- name: Wait for GI operators before 3.1
+  shell:
+    cmd: "oc get pods -n {{ gi_namespace }}|grep {{ item.operator_pattern }}|grep 1/1|grep Running|wc -l"
+  register: operator_status
+  until: "operator_status.stdout == \"1\""
+  retries: 30
+  delay: 10
+  with_items:
+    - { operator_pattern: "db2u-operator-manager" }
+    - { operator_pattern: "ibm-cloud-databases-redis-operator" }
+    - { operator_pattern: "mongodb-kubernetes-operator" }
+    - { operator_pattern: "guardiuminsights-controller-manager" }
+  when: gi_version_index|int < 3
+
+- name: Wait for GI operators from 3.1
+  shell:
+    cmd: "oc get pods -n {{ gi_namespace }}|grep {{ item.operator_pattern }}|grep 1/1|grep Running|wc -l"
+  register: operator_status
+  until: "operator_status.stdout == \"1\""
+  retries: 30
+  delay: 10
+  with_items:
+    - { operator_pattern: "ibm-cloud-databases-redis-operator" }
+    - { operator_pattern: "mongodb-kubernetes-operator" }
+    - { operator_pattern: "guardiuminsights-controller-manager" }
+  when: gi_version_index|int > 2
+

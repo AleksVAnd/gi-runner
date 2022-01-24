@@ -143,18 +143,18 @@
   delay: 60
 
 - name: Get ssh service node port
-    shell:
-      cmd: "oc get services -n {{ gi_namespace }} {{ gi_namespace }}-ssh-service -o json|jq .spec.ports[0].nodePort"
-    register: ssh_node_port
+  shell:
+    cmd: "oc get services -n {{ gi_namespace }} {{ gi_namespace }}-ssh-service -o json|jq .spec.ports[0].nodePort"
+  register: ssh_node_port
 
-  - name: Open ssh-service port on bastion
-    firewalld:
-      port: "{{ item.port }}/{{ item.type }}"
-      permanent: yes
-      immediate: yes
-      state: enabled
-    with_items:
-      - { port: "{{ ssh_node_port.stdout }}", type: "tcp" }
+- name: Open ssh-service port on bastion
+  firewalld:
+    port: "{{ item.port }}/{{ item.type }}"
+    permanent: yes
+    immediate: yes
+    state: enabled
+  with_items:
+    - { port: "{{ ssh_node_port.stdout }}", type: "tcp" }
 
 - name: Create HA Proxy config file with ssh-service
   template:

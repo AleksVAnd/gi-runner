@@ -370,3 +370,39 @@
     - name: Install openldap
       include: openldap_install.yaml
       when: skip_phase|int < 6 and install_ldap == 'Y'
+
+    - name: OCP info
+      debug:
+        msg:
+          - "Openshift {{ ocp_version }} has been installed and configured"
+          - "Add to hosts on your web browser workstation this line to login to OCP:"
+          - "{{ bas_ip }} console-openshift-console.apps.{{ domain }} oauth-openshift.apps.{{ domain }}"
+          - "Login to OCP console as {{ ocadmin }} user - https://console-openshift-console.apps.{{ domain }}"
+
+    - name: ICS info
+      debug:
+        msg:
+          - "IBM Common Services {{ ics_version }} installation finished"
+          - Update the hosts file on your web browser workstation
+          - "{{ bas_ip }} cp-console.apps.{{ domain }}"
+          - "Login to ICS console as admin user - https://cp-console.apps.{{ domain }}"
+          - "{{ 'LDAP instance registered in ICS with name openldap' if install_ldap == 'Y' else ''}}"
+      when: install_ics == 'Y'
+
+    - name: GI info
+      debug:
+        msg:
+          - "GI {{ gi_version }} installation finished"
+          - Update the hosts file on your web browser workstation
+          - "{{ bas_ip }} insights.apps.{{ domain }}"
+          - "Login to GI console as admin - https://insights.apps.{{ domain }}"
+          - "SSH port {{ ssh_node_port.stdout }} integration with GDP routed and opened on bastion"
+      when: install_gi == 'Y'
+
+    - name: LDAP info
+      debug:
+        msg:
+          - "Open LDAP installed"
+          - "LDAP instance configured in ICS with name openldap"
+      when: install_ldap == 'Y'
+

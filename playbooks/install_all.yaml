@@ -374,7 +374,7 @@
     - name: OCP info
       debug:
         msg:
-          - "Openshift {{ ocp_version }} has been installed and configured"
+          - "Openshift {{ ocp_release }} has been installed and configured"
           - "Add to hosts on your web browser workstation this line to login to OCP:"
           - "{{ bas_ip }} console-openshift-console.apps.{{ domain }} oauth-openshift.apps.{{ domain }}"
           - "Login to OCP console as {{ ocadmin }} user - https://console-openshift-console.apps.{{ domain }}"

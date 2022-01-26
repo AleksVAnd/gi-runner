@@ -1033,7 +1033,7 @@ function get_set_services() {
         if [[ $install_ntpd == 'N' ]]
         then
                 timedatectl set-ntp true
-                while $(check_input "ip" ${ntp_server})
+                while $(check_input "ip" ${ntpd_server})
                 do
                         if [ ! -z "$GI_NTP_SRV" ]
                         then

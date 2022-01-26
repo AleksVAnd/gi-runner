@@ -1136,9 +1136,12 @@ function get_service_assignment() {
                 [[ $gi_size == 'values-small' ]] && db2_nodes_size=2 || db2_nodes_size=1
 		if [[ $db2_tainted == 'Y' ]]
 		then
-                	msg "You decided that DB2 will be installed on dedicated nodes" 8
-                	msg "These nodes should not be used as storage cluster nodes" 8
+                	msg "You decided that DB2 will be installed on dedicated node/nodes" 8
+                	msg "Node/nodes should not be used as storage cluster nodes" 8
+		else
+			msg "Insert node/nodes name where DB2 should be installed" 8
 		fi
+		msg "DB2 node/nodes should have enough resources (CPU, RAM) to get this role, check GI documentation" 8
                 msg "Available worker nodes: $worker_name" 8
                 while $(check_input "nodes" $db2_nodes $worker_name $db2_nodes_size "def")
                 do
@@ -1875,7 +1878,7 @@ get_certificates
 [[ "$gi_install" == 'Y' ]] && save_variable GI_ICS_OPERANDS "N,N,Y,Y,Y,N,N,N,N"
 [[ "$ics_install" == 'Y' && "$gi_install" == 'N' ]] && get_ics_options
 [[ "$install_ldap" == 'Y' ]] && get_ldap_options
-[[ $use_air_gap == 'N' && $use_proxy='P' ]] && configure_os_for_proxy || unset_proxy_settings
+[[ $use_air_gap == 'N' && $use_proxy == 'P' ]] && configure_os_for_proxy || unset_proxy_settings
 [[ "$use_air_gap" == 'N' ]] && software_installation_on_online
 create_cluster_ssh_key
 #ln /usr/bin/python3 /usr/bin/python

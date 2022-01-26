@@ -315,7 +315,7 @@
         add_options2: "{{ ' -c '+gi_ca+' -f '+gi_cert+' -k '+gi_key if gi_ext_ingress == 'Y' else '' }}"
         storage_class_fs: "{{ 'rook-cephfs' if storage_type == 'R' else 'ocs-storagecluster-cephfs' }}"
         storage_class_block: "{{ 'rook-ceph-block' if storage_type == 'R' else 'ocs-storagecluster-ceph-rbd' }}"
-      when: internet_type == 'A' and install_gi == 'Y'
+      when: install_gi == 'Y'
 
     - name: Set parameters for air-gapped installation
       set_fact:

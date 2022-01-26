@@ -68,6 +68,8 @@
     dest: "{{ temp_dir }}/olm/local-storage-vol.yaml"
   when: is_master_only == 'Y'
 
+- meta: end_play
+
 - name: Deploy local storage
   shell:
     cmd: "oc apply -f {{ temp_dir }}/olm/local-storage-vol.yaml"

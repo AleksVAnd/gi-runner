@@ -118,11 +118,6 @@
   shell:
     cmd: semanage permissive -a NetworkManager_t
 
-- name: Install ansible galaxy packages
-  shell:
-    cmd: ansible-galaxy collection install community.general
-  when: install_ldap == 'Y' and internet_type != 'A'
-
 - name: Cleanup configuration files
   file:
     path: "{{ item.path }}"
@@ -226,7 +221,7 @@
 - name: Download matchbox
   get_url:
     url: "https://github.com/poseidon/matchbox/releases/download/{{ matchbox_version }}/matchbox-{{ matchbox_version }}-linux-amd64.tar.gz"
-    dest: "{{ temp_dir }}"
+    dest: "{{ temp_dir }}/coreos"
     use_proxy: "{{ 'yes' if internet_type == 'P' else 'no' }}"
   when: matchbox_presence.stat.exists == false and internet_type != 'A'
 

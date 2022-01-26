@@ -796,7 +796,7 @@ function software_installation_on_online() {
 	msg "Update and installation of software packaged" 7
 	msg "Installing OS updates" 7
         dnf -qy update
-        msg "Installing OS packages"
+        msg "Installing OS packages" 8
         local soft=("tar" "ansible" "haproxy" "openldap" "perl" "podman-docker" "ipxe-bootimgs" "chrony" "dnsmasq" "unzip" "wget" "httpd-tools" "policycoreutils-python-utils" "python3-ldap" "openldap-servers" "openldap-clients" "pip" "skopeo")
         for package in "${soft[@]}"
         do

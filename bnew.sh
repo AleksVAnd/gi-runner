@@ -1500,7 +1500,7 @@ function validate_certs() {
         do
                 if [ ! -z "$pre_value_ca" ]
                 then
-                        get_input "txt" "Push <ENTER> to accept the previous choice [$pre_value_ca] or insert the full path to root CA of $label certificate" true "$pre_value_ca"
+                        get_input "txt" "Push <ENTER> to accept the previous choice [$pre_value_ca] or insert the full path to root CA of $label certificate: " true "$pre_value_ca"
                 else
                         get_input "txt" "Insert the full path to root CA of $label certificate: " false
                 fi
@@ -1511,7 +1511,7 @@ function validate_certs() {
         do
                 if [ ! -z "$pre_value_app" ]
                 then
-                        get_input "txt" "Push <ENTER> to accept the previous choice [$pre_value_app] or insert the full path to $label certificate" true "$pre_value_app"
+                        get_input "txt" "Push <ENTER> to accept the previous choice [$pre_value_app] or insert the full path to $label certificate: " true "$pre_value_app"
                 else
                         get_input "txt" "Insert the full path to $label certificate: " false
                 fi
@@ -1521,7 +1521,7 @@ function validate_certs() {
         do
                 if [ ! -z "$pre_value_key" ]
                 then
-                        get_input "txt" "Push <ENTER> to accept the previous choice [$pre_value_key] or insert the full path to $label private key" true "$pre_value_key"
+                        get_input "txt" "Push <ENTER> to accept the previous choice [$pre_value_key] or insert the full path to $label private key: " true "$pre_value_key"
                 else
                         get_input "txt" "Insert the full path to $label private key: " false
                 fi

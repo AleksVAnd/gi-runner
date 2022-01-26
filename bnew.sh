@@ -1336,8 +1336,8 @@ function get_credentials() {
                 do
                         if [ ! -z "$GI_RHN_SECRET" ]
                         then
-                                msg "Push <ENTER> to accept the previous choice" true
-                                msg "[$GI_RHN_SECRET]" true
+                                msg "Push <ENTER> to accept the previous choice" 1
+                                msg "[$GI_RHN_SECRET]" 1
                                 get_input "txt" "or insert RedHat pull secret: " true "$GI_RHN_SECRET"
                         else
                                 get_input "txt" "Insert RedHat pull secret: " false

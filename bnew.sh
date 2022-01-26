@@ -815,6 +815,7 @@ function software_installation_on_online() {
         msg "Configuring Ansible" 7
         mkdir -p /etc/ansible
         [[ $use_proxy == 'P' ]] && echo -e "[bastion]\n127.0.0.1 \"http_proxy=http://$proxy_ip:$proxy_port\" https_proxy=\"http://$proxy_ip:$proxy_port\" ansible_connection=local" > /etc/ansible/hosts || echo -e "[bastion]\n127.0.0.1 ansible_connection=local" > /etc/ansible/hosts
+	mkdir -p ${GI_TEMP}/os
         echo "pullSecret: '$rhn_secret'" > ${GI_TEMP}/os/pull_secret.tmp
 }
 

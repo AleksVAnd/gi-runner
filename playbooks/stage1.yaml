@@ -659,7 +659,7 @@
 
 - name: Add RHN Pull Secret - ansible replaces /" to /'
   shell:
-    cmd: "cat ../scripts/pull_secret.tmp >> ../ocp/install-config.yaml"
+    cmd: "cat {{ temp_dir }}/coreos/pull_secret.tmp >> ../ocp/install-config.yaml"
   when: internet_type != 'A'
 
 - name: Create manifests files

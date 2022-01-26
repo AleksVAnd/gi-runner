@@ -817,10 +817,10 @@ function software_installation_on_online() {
         [[ $use_proxy == 'P' ]] && echo -e "[bastion]\n127.0.0.1 \"http_proxy=http://$proxy_ip:$proxy_port\" https_proxy=\"http://$proxy_ip:$proxy_port\" ansible_connection=local" > /etc/ansible/hosts || echo -e "[bastion]\n127.0.0.1 ansible_connection=local" > /etc/ansible/hosts
         msg "Installing Ansible galaxy packages" 7
 	local ansible_galaxy=("community.general")
-        for package in "${python_soft[@]}"
+        for package in "${ansible_galaxy[@]}"
         do
                 msg "- installing $package ..." 8
-		ansible-galaxy collection install community.general
+		ansible-galaxy collection install $package
                 [[ $? -ne 0 ]] && display_error "Cannot install Ansible Galaxy package $package"
         done
 	mkdir -p ${GI_TEMP}/os

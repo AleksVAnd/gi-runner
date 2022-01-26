@@ -994,9 +994,9 @@ function get_worker_nodes() {
 			msg "Collecting OCS dedicated nodes data because OCS tainting has been chosen (IP and MAC addresses, node names), values inserted as comma separated list without spaces" 7
                         get_nodes_info 3 "ocs"
                 fi
-                if [ $db2_tainted == 'Y' ]
+                if [[ "$db2_tainted" == 'Y' ]]
                 then
-                        [ $gi_size == "values-small" ] && worker_number=$(($worker_number+2)) || worker_number=$(($worker_number+1))
+                        [[ $gi_size == "values-small" ]] && worker_number=$(($worker_number+2)) || worker_number=$(($worker_number+1))
                 fi
                 msg "Your cluster architecture decisions require to have minimum $worker_number additional workers" 8
                 while $(check_input "int" $inserted_worker_number $worker_number 50)

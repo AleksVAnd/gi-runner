@@ -948,7 +948,7 @@ function get_nodes_info() {
                 then
                         get_input "txt" "Push <ENTER> to accept the previous choice [$global_var_name] or insert $node_type ${pl_names[1]}: " true "$global_var_name"
                 else
-                        get_input "txt" "Insert bootstrap ${pl_names[1]}: " false
+                        get_input "txt" "Insert $node_type ${pl_names[1]}: " false
                 fi
                 temp_name=${input_variable}
         done

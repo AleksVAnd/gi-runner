@@ -1905,6 +1905,6 @@ else
 	msg "Execute commands below to continue:" 6
 	[[ $use_proxy == 'P' ]] &&  msg "- import PROXY settings: \". /etc/profile\"" 6
 	msg "- import variables: \". $file\"" 6
-	msg "- start first playbook: \"ansible-playbook playbooks/install_all.yaml\"" 6
+	msg "- start playbook: \"ansible-playbook playbooks/install_all.yaml\"" 6
 fi
 trap - EXIT

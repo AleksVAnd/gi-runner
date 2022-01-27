@@ -1,3 +1,5 @@
+- meta: end_play
+
 - name: Configure OCS nodes on workers
   shell:
     cmd: "oc label nodes {{ item }}.{{ domain }} cluster.ocs.openshift.io/openshift-storage='' --overwrite=true"
@@ -113,8 +115,6 @@
   template:
     src: "ocs-cluster.j2"
     dest: "{{ temp_dir }}/olm/ocs-cluster.yaml"
-
-- meta: end_play
 
 - name: Deploy OCS cluster
   shell:

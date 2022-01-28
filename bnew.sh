@@ -1200,6 +1200,23 @@ function get_service_assignment() {
                 fi
         fi
 	save_variable GI_ROOK_NODES "$rook_nodes"
+	if [[ $storage_type == "O" && $ocs_tainted == 'N' && $is_master_only == "N" && ${#node_arr[@]} -gt 3 ]]
+        then
+                msg "You must specify cluster nodes for OCS deployment" 8
+                msg "These nodes must have additional disk attached for this purpose" 8
+                while $(check_input "nodes" $ocs_nodes $worker_wo_db2_name 3 "def")
+	        do
+        	        if [ ! -z "$GI_OCS_NODES" ]
+                                then
+                                        get_input "txt" "Push <ENTER> to accept the previous choice [$GI_OCS_NODES] or specify 3 nodes (comma separated, without spaces)?: " true "$GI_OCS_NODES"
+                                else
+                                        get_input "txt" "Specify 3 nodes (comma separated, without spaces)?: " false
+                                fi
+                                ocs_nodes=${input_variable}
+                        done
+                fi
+        	save_variable GI_OCS_NODES "$ocs_nodes"
+        fi
         if [[ $ics_install == "Y" && $is_master_only == "N" && ${#node_arr[@]} -gt 3 ]]
         then
                 msg "You can force to deploy ICS on strictly defined node list" 8

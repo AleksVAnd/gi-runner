@@ -1872,9 +1872,23 @@ function create_cluster_ssh_key() {
         msg "Save SSH keys names: ${cluster_id} and ${cluster_id}.pub, each init.sh execution create new key with random name" 8
 }
 
+function get_network_architecture {
+	msg "Network subnet assignment for OCP nodes" 7
+	msg "OpenShift cluster nodes can be located in the different subnets" 8
+	msg "If you plan to place individual nodes in separate subnets it is necessary to ensure that DHCP requests are forwarded to the bastion ($bastion_ip) using DHCP relay" 8
+	msg "It is also recommended to place the bastion outside the subnets used by the cluster" 8
+	msg "If you cannot setup DHCP relay in your network, all cluster nodes and bastion must be located in this same subnet (DHCP broadcast network)" 8
+	while $(check_input "yn" "$dhcp_relay")
+                do
+                        get_input "yn"  "Would you like to place the cluster nodes in one subnet?: " && echo true || echo false)
+                        dhcp_relay=${input_variable^^}
+                done
+        done
+        save_variable GI_DHCP_RELAY $dhcp_relay
+}
 
 #MAIN PART
-
+get_network_architecture
 echo "#gi-runner configuration file" > $file
 msg "This script must be executed from gi-runner home directory" 8
 msg "Checking OS release" 7

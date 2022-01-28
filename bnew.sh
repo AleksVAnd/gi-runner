@@ -1175,6 +1175,7 @@ function get_service_assignment() {
                 fi
 	else
 		IFS=',' read -r -a node_arr <<< "$worker_name"
+                worker_wo_db2_name="${worker_name[@]}"
         fi
         if [[ $storage_type == "R" && $is_master_only == "N" && ${#node_arr[@]} -gt 3 ]]
         then
@@ -1202,7 +1203,6 @@ function get_service_assignment() {
                 fi
         fi
 	save_variable GI_ROOK_NODES "$rook_nodes"
-	echo "here ${#node_arr[@]}"
 	if [[ $storage_type == "O" && $ocs_tainted == 'N' && $is_master_only == "N" && ${#node_arr[@]} -gt 3 ]]
         then
                 msg "You must specify cluster nodes for OCS deployment" 8

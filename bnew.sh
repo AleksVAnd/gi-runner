@@ -1207,14 +1207,13 @@ function get_service_assignment() {
                 while $(check_input "nodes" $ocs_nodes $worker_wo_db2_name 3 "def")
 	        do
         	        if [ ! -z "$GI_OCS_NODES" ]
-                                then
-                                        get_input "txt" "Push <ENTER> to accept the previous choice [$GI_OCS_NODES] or specify 3 nodes (comma separated, without spaces)?: " true "$GI_OCS_NODES"
-                                else
-                                        get_input "txt" "Specify 3 nodes (comma separated, without spaces)?: " false
-                                fi
-                                ocs_nodes=${input_variable}
-                        done
-                fi
+                        then
+                        	get_input "txt" "Push <ENTER> to accept the previous choice [$GI_OCS_NODES] or specify 3 nodes (comma separated, without spaces)?: " true "$GI_OCS_NODES"
+                        else
+                                get_input "txt" "Specify 3 nodes (comma separated, without spaces)?: " false
+                        fi
+                        ocs_nodes=${input_variable}
+                done
         	save_variable GI_OCS_NODES "$ocs_nodes"
         fi
         if [[ $ics_install == "Y" && $is_master_only == "N" && ${#node_arr[@]} -gt 3 ]]

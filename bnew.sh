@@ -1207,6 +1207,7 @@ function get_service_assignment() {
         then
                 msg "You must specify cluster nodes for OCS deployment" 8
                 msg "These nodes must have additional disk attached for this purpose" 8
+		msg "Available worker nodes: $worker_wo_db2_name" 8
                 while $(check_input "nodes" $ocs_nodes $worker_wo_db2_name 3 "def")
 	        do
         	        if [ ! -z "$GI_OCS_NODES" ]

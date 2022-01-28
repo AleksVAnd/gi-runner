@@ -71,7 +71,6 @@
 - name: Deploy local storage
   shell:
     cmd: "oc apply -f {{ temp_dir }}/olm/local-storage-vol.yaml"
-  when: false
 
 - name: Wait for local storage deployment
   shell:

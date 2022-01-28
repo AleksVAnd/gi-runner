@@ -1173,6 +1173,8 @@ function get_service_assignment() {
                 	worker_wo_db2_name=`echo ${node_arr[*]}|tr ' ' ','`
                 	workers_for_gi_selection=$worker_wo_db2_name
                 fi
+	else
+		IFS=',' read -r -a node_arr <<< "$worker_name"
         fi
         if [[ $storage_type == "R" && $is_master_only == "N" && ${#node_arr[@]} -gt 3 ]]
         then

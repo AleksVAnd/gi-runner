@@ -31,6 +31,12 @@
   with_items: "{{ nodes|list }}"
   when: rook_dedicated_nodes|length < 3
 
+- name: Label rook storage nodes in masters only architecture
+  shell:
+    cmd: "oc label node {{ item }}.{{ domain }} role=storage-node --overwrite=true"
+  with_items: "{{ master_name|list }}"
+  when: is_master_only == 'Y' 
+
 - name: Configure rook-ceph CRD's
   shell:
     cmd: "oc apply -f ../scripts/rook-latest-crds.yaml"

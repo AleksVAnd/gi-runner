@@ -228,6 +228,17 @@
         - { name: "GI_LDAP_DEPLOYMENT", value: "{{ ldap_depl_type }}" }
       when: install_ldap == 'Y' and item.value == ""
 
+    - name: Set OCS nodes list
+      set_fact:
+        ocs_nodes: "{{ lookup('env', 'GI_OCS_NODES').split(',') }}"
+      when: storage_type == 'O' and is_ocs_tainted == 'N'
+
+    - name: Check OCS nodes list
+      fail: msg="Variable {{ item.name }} is not set"
+      loop:
+        - { name: "GI_OCS_NODES", value: "{{ ocs_nodes }}" }
+      when: storage_type == 'O' and is_ocs_tainted == 'N' and item.value == ""
+
     - name: Set parameters for non air-gapped installation
       set_fact:
         ibm_secret:  "{{ lookup('env','GI_IBM_SECRET') }}"

@@ -368,7 +368,7 @@
     - debug:
         msg:
           - "Bastion prepared for OpenShift boot"
-          - "Start all nodes amd confirm that they are correctly booted, then push <ENTER> to continue"
+          - "Start all nodes and confirm that they are correctly booted, then push <ENTER> to continue"
       when: skip_phase|int < 1
 
     - pause:

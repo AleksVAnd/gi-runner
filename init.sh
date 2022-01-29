@@ -1901,6 +1901,7 @@ function get_subnets {
 	msg "For each subnet you must provide the IP address range to serve by DHCP server on bastion and subnet default gateway" 8
 	for i in $(seq 1 $number_dhcp_subnets)
 	do
+		unset l_gtw
 		while $(check_input "ip" ${l_gtw})
         	do
                        	get_input "txt" "Insert default gateway of vlan#${i}: " false
@@ -1908,7 +1909,7 @@ function get_subnets {
         	done
 		gtws+=(l_gtw)
 	done
-	echo ${l_gtw[@]}
+	echo ${gtws[@]}
 	
 }
 

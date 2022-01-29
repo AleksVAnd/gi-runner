@@ -891,18 +891,21 @@ function get_bastion_info() {
                 bastion_name=${input_variable}
         done
         save_variable GI_BASTION_NAME $bastion_name
-        msg "Provide the IP gateway of subnet where cluster node are located" 8
-        while $(check_input "ip" ${subnet_gateway})
-        do
-                if [[ ! -z "$GI_GATEWAY" ]]
-                then
-                        get_input "txt" "Push <ENTER> to accept the previous choice [$GI_GATEWAY] or insert IP address of default gateway: " true "$GI_GATEWAY"
-                else
-                        get_input "txt" "Insert IP address of default gateway: " false
-                fi
-                subnet_gateway=${input_variable}
-        done
-        save_variable GI_GATEWAY $subnet_gateway
+	if [[ $one_subnet == 'Y' ]]
+	then
+        	msg "Provide the IP gateway of subnet where cluster node are located" 8
+        	while $(check_input "ip" ${subnet_gateway})
+        	do
+                	if [[ ! -z "$GI_GATEWAY" ]]
+                	then
+                        	get_input "txt" "Push <ENTER> to accept the previous choice [$GI_GATEWAY] or insert IP address of default gateway: " true "$GI_GATEWAY"
+                	else
+                        	get_input "txt" "Insert IP address of default gateway: " false
+                	fi
+                	subnet_gateway=${input_variable}
+        	done
+        	save_variable GI_GATEWAY $subnet_gateway
+	fi
 }
 
 function get_nodes_info() {
@@ -1926,26 +1929,24 @@ function get_subnets {
 		unset l_gtw
 		while $(check_input "ip" ${l_gtw})
         	do
-                       	get_input "txt" "Insert default gateway of vlan#${i}: " false
+                       	get_input "txt" "Insert default gateway IP address of vlan#${i}: " false
                 	l_gtw=${input_variable}
         	done
 		gtws+=($l_gtw)
 		unset l_range
 		while $(check_input "ip_range" ${l_range})
                 do
-                        get_input "txt" "Insert IP address range to serve by bastion DHCP server for vlan#${i}: " false
+			get_input "txt" "Insert IP address range (in format <x.x.x.x>-<y.y.y.y>) to serve by bastion DHCP server for vlan#${i}: " false
                         l_range=${input_variable}
                 done
 		ip_ranges+=($l_range)
 	done
 	save_variable GI_SUBNETS_GATEWAYS `echo ${gtws[*]}|tr " " ","`
-	#save_variable GI_SUBNETS_IP_RANGES { ${ip_ranges[*]}|tr " " "," }
+	save_variable GI_SUBNETS_IP_RANGES `echo ${ip_ranges[*]}|tr " " ","`
 }
 
 #MAIN PART
 echo "#gi-runner configuration file" > $file
-get_network_architecture
-[[ $one_subnet == 'N' ]] && get_subnets
 msg "This script must be executed from gi-runner home directory" 8
 msg "Checking OS release" 7
 save_variable KUBECONFIG "$GI_HOME/ocp/auth/kubeconfig"
@@ -1965,7 +1966,7 @@ get_network_architecture
 get_bastion_info
 msg "Collecting data about bootstrap node (IP and MAC addres, name)" 7
 get_nodes_info 1 "boot"
-msg "Collecting Control Plane nodes data (IP and MAC addres, name), values must beinserted as comma separated list without spaces" 7
+msg "Collecting Control Plane nodes data (IP and MAC addres, name), values must be inserted as comma separated list without spaces" 7
 get_nodes_info 3 "mst"
 get_worker_nodes
 get_set_services
@@ -1979,7 +1980,7 @@ get_certificates
 [[ "$gi_install" == 'Y' ]] && save_variable GI_ICS_OPERANDS "N,N,Y,Y,Y,N,N,N,N"
 [[ "$ics_install" == 'Y' && "$gi_install" == 'N' ]] && get_ics_options
 [[ "$install_ldap" == 'Y' ]] && get_ldap_options
-[[ $use_air_gap == 'N' && $use_proxy == 'P' ]] && configure_os_for_proxy || unset_proxy_settings
+[[ "$use_air_gap" == 'N' && "$use_proxy" == 'P' ]] && configure_os_for_proxy || unset_proxy_settings
 [[ "$use_air_gap" == 'N' ]] && software_installation_on_online
 create_cluster_ssh_key
 #ln /usr/bin/python3 /usr/bin/python

@@ -1919,8 +1919,8 @@ function get_subnets {
 	local gtws=()
 	local ip_ranges=()
 	msg "Collecting OCP cluster subnets" 7
-	msg "Number of subnets used by cluster (do not include subnet where bastion is located)" 8
-	while $(check_input "int" ${number_dhcp_subnets} 0 10)
+	msg "Number of subnets used by cluster" 8
+	while $(check_input "int" ${number_dhcp_subnets} 1 10)
         do
 	        get_input "txt" "Insert number of subnets used by cluster nodes: " false
         	number_dhcp_subnets=${input_variable}

@@ -2,7 +2,7 @@
 - name: Add lines to dnsmasq.conf for one subnet installation
   lineinfile:
     path: /etc/dnsmasq.conf
-    line: "dhcp-option=vlan,3,{{ item }}"
+    line: "dhcp-option=vlan{{ ansible_loop.index }},3,{{ item }}"
   with_items: "{{ gateways_list }}"
   loop_control:
     extended: yes

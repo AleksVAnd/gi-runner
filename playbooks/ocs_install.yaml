@@ -62,7 +62,7 @@
 
 - name: Configure local storage deployment file with masters only
   vars:
-    nodes: "{{ master_name|list }}"
+    nodes: master_name|list
   template:
     src: "local-storage-vol.j2"
     dest: "{{ temp_dir }}/olm/local-storage-vol.yaml"

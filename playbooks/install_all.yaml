@@ -30,9 +30,6 @@
     boot_ip: "{{ lookup('env','GI_BOOTSTRAP_IP') }}"
     bas_int: "{{ lookup('env','GI_NETWORK_INTERFACE') }}"
     dns_forwarder: "{{ lookup('env','GI_DNS_FORWARDER') }}"
-    bas_gw: "{{ lookup('env','GI_GATEWAY') }}"
-    dhcp_range_start: "{{ lookup('env','GI_DHCP_RANGE_START') }}"
-    dhcp_range_stop: "{{ lookup('env','GI_DHCP_RANGE_STOP') }}"
     bas_name: "{{ lookup('env','GI_BASTION_NAME') }}"
     boot_name: "{{ lookup('env','GI_BOOTSTRAP_NAME') }}"
     ocp_ext_ingress: "{{ lookup('env','GI_OCP_IN') }}"
@@ -45,6 +42,7 @@
     storage_device_size: "{{ lookup('env','GI_STORAGE_DEVICE_SIZE') }}"
     install_gi: "{{ lookup('env','GI_INSTALL_GI') }}"
     install_ics: "{{ lookup('env','GI_ICS') }}"
+    one_subnet: "{{ lookup('env','GI_ONE_SUBNET') }}"
 
 
   tasks:
@@ -66,9 +64,6 @@
         - { name: "GI_BOOTSTRAP_IP", value: "{{ boot_ip }}" }
         - { name: "GI_NETWORK_INTERFACE", value: "{{ bas_int }}" }
         - { name: "GI_DNS_FORWARDER", value: "{{ dns_forwarder }}" }
-        - { name: "GI_GATEWAY", value: "{{ bas_gw }}" }
-        - { name: "GI_DHCP_RANGE_START", value: "{{ dhcp_range_start }}" }
-        - { name: "GI_DHCP_RANGE_STOP", value: "{{ dhcp_range_stop }}" }
         - { name: "GI_BASTION_NAME", value: "{{ bas_name }}" }
         - { name: "GI_BOOTSTRAP_NAME", value: "{{ boot_name }}" }
         - { name: "GI_OCP_IN", value: "{{ ocp_ext_ingress }}" }
@@ -81,6 +76,35 @@
         - { name: "GI_STORAGE_DEVICE_SIZE", value: "{{ storage_device_size }}" }
         - { name: "GI_INSTALL_GI", value: "{{ install_gi }}" }
         - { name: "GI_ICS", value: "{{ install_ics }}" }
+        - { name: "GI_ONE_SUBNET", value: "{{ one_subnet }}" }
+
+    - name: Set parameters for one subnet installation
+      set_fact:
+        dhcp_range_start: "{{ lookup('env','GI_DHCP_RANGE_START') }}"
+        dhcp_range_stop: "{{ lookup('env','GI_DHCP_RANGE_STOP') }}"
+        bas_gw: "{{ lookup('env','GI_GATEWAY') }}"
+      when: one_subnet == 'Y'
+
+    - name: Check configuration parameters for one subnet installation
+      fail: msg="Variable {{ item.name }} is not set"
+      loop:
+        - { name: "GI_DHCP_RANGE_START", value: "{{ dhcp_range_start }}" }
+        - { name: "GI_DHCP_RANGE_STOP", value: "{{ dhcp_range_stop }}" }
+        - { name: "GI_GATEWAY", value: "{{ bas_gw }}" }
+      when: one_subnet == 'Y' and item.value == ""
+
+    - name: Set parameters for multiple subnets installation
+      set_fact:
+        gateways_list: "{{ lookup('env','GI_SUBNETS_GATEWAYS').split(',') }}"
+        dhcp_ranges_list: "{{ lookup('env','GI_SUBNETS_IP_RANGES').split(',') }}"
+      when: one_subnet == 'N'
+
+    - name: Check configuration parameters for multiple subnets installation
+      fail: msg="Variable {{ item.name }} is not set"
+      loop:
+        - { name: "GI_SUBNETS_GATEWAYS", value: "{{ gateways_list }}" }
+        - { name: "GI_SUBNETS_IP_RANGES", value: "{{ dhcp_ranges_list }}" }
+      when: one_subnet == 'N' and item.value == ""
 
     - name: Set parameters for air-gapped installation
       set_fact:

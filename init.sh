@@ -1939,7 +1939,7 @@ function get_subnets {
 		unset l_range
 		while $(check_input "ip_range" ${l_range})
                 do
-			get_input "txt" "Insert IP address range (in format <x.x.x.x>-<y.y.y.y>) to serve by bastion DHCP server for vlan#${i}: " false
+			get_input "txt" "Insert IP address range (in format x.x.x.x-y.y.y.y) to serve by bastion DHCP server for vlan#${i}: " false
                         l_range=${input_variable}
                 done
 		ip_ranges+=($l_range)

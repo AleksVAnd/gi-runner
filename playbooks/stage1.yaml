@@ -1,3 +1,15 @@
+
+- name: Add lines to dnsmasq.conf for one subnet installation
+  lineinfile:
+    path: /etc/dnsmasq.conf
+    line: "dhcp-option=vlan{{ ansible_loop.index }},3,{{ item }}"
+  with_items: "gateways_list"
+  when: one_subnet == 'N'
+
+- meta: end_play
+
+- name: Add igateways to dnsmasq.conf for multi subnets installation
+  lineinfile:
 - name: Create temp subdirectories
   file:
     path: "{{ item.path }}"
@@ -476,11 +488,10 @@
   with_items:
     - "#Gateway"
     - "dhcp-option=2,7200"
-    - "dhcp-option=3,{{ bas_gw }}"
     - "dhcp-option=42,{{ ntp_server }}"
+    - "dhcp-option=66,{{ bas_ip }}"
     - "#DNS"
     - "dhcp-option=6,{{ bas_ip }}"
-    - "dhcp-range={{ dhcp_range_start }},{{ dhcp_range_stop }},12h"
     - "dhcp-host={{ boot_mac }},{{ boot_ip }},12h"
     - "domain={{ domain }}"
     - "#Static DNS"
@@ -507,6 +518,24 @@
     - "dhcp-boot=tag:efi64,ipxe.efi"
     - "dhcp-userclass=set:ipxe,iPXE"
     - "dhcp-boot=tag:ipxe,http://matchbox.{{ domain }}:8080/boot.ipxe"
+
+- name: Add lines to dnsmasq.conf for one subnet installation
+  lineinfile:
+    path: /etc/dnsmasq.conf
+    line: "dhcp-option=vlan{{ ansible_loop.index }},3,{{ item }}"
+  with_items: "gateways_list"
+  when: one_subnet == 'N'
+
+- meta: end_play
+
+- name: Add igateways to dnsmasq.conf for multi subnets installation
+  lineinfile:
+    path: /etc/dnsmasq.conf
+    line: "{{ item }}"
+  with_items:
+    - "dhcp-option=3,{{ bas_gw }}"
+    - "dhcp-range={{ dhcp_range_start }},{{ dhcp_range_stop }},12h"
+  when: one_subnet == 'Y'
 
 - name: Add  PTR lines to dnsmasq.conf
   lineinfile:

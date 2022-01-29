@@ -1247,6 +1247,8 @@ function get_service_assignment() {
                         ocs_nodes=${input_variable}
                 done
         	save_variable GI_OCS_NODES "$ocs_nodes"
+	else
+		save_variable GI_OCS_NODES "$worker_name"
         fi
         if [[ $ics_install == "Y" && $is_master_only == "N" && ${#node_arr[@]} -gt 3 ]]
         then

@@ -61,7 +61,7 @@
   when: is_master_only == 'N' and is_ocs_tainted == 'Y'
 
 - debug:
-    msg: "{{ master_name }}"
+    msg: "{{ master_name|list }}"
 - name: Configure local storage deployment file with masters only
   vars:
     nodes: "{{ master_name|list }}"

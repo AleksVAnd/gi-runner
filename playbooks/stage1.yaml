@@ -3,7 +3,7 @@
   lineinfile:
     path: /etc/dnsmasq.conf
     line: "dhcp-option=vlan,3,{{ item }}"
-  with_items: "gateways_list"
+  with_items: gateways_list
   when: one_subnet == 'N'
 
 - meta: end_play

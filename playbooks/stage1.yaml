@@ -1,7 +1,7 @@
 - name: Add dhcp ranges to dnsmasq.conf for multiple subnets installation
   lineinfile:
     path: /etc/dnsmasq.conf
-    line: "dhcp-range=vlan{{ ansible_loop.index }},{{ item | map('regexp_replace','-',',') }},12h"
+    line: "dhcp-range=vlan{{ ansible_loop.index }},{{ item | replace('-',',') }},12h"
   with_items: "{{ gateways_list }}"
   loop_control:
     extended: yes

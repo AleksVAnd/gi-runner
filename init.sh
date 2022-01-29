@@ -1886,9 +1886,35 @@ function get_network_architecture {
         save_variable GI_DHCP_RELAY $dhcp_relay
 }
 
+function get_subnets {
+	local i
+	local l_gtw
+	local gtws=()
+	msg "Collecting OCP cluster subnets" 7
+	msg "Number of subnets used by cluster (do not include subnet where bastion is located)" 8
+	while $(check_input "int" ${number_dhcp_subnets} 0 10)
+        do
+	        get_input "txt" "Insert number of subnets used by cluster nodes: " false
+        	number_dhcp_subnets=${input_variable}
+        done
+	msg "For each subnet you must provide the IP address range to serve by DHCP server on bastion and subnet default gateway" 8
+	for i in $(seq 1 $number_dhcp_subnets)
+	do
+		while $(check_input "ip" ${l_gtw})
+        	do
+                       	get_input "txt" "Insert default gateway of vlan#${i}: " false
+                	l_gtw=${input_variable}
+        	done
+		gtws+=(l_gtw)
+	done
+	echo ${l_gtw[@]}
+	
+}
+
 #MAIN PART
 echo "#gi-runner configuration file" > $file
 get_network_architecture
+[[ $dhcp_relay == 'Y' ]] && get_subnets
 msg "This script must be executed from gi-runner home directory" 8
 msg "Checking OS release" 7
 save_variable KUBECONFIG "$GI_HOME/ocp/auth/kubeconfig"
@@ -1903,6 +1929,8 @@ mkdir -p $GI_TEMP
 msg "Installing tools for init.sh" 7
 [[ "$use_air_gap" == 'N' ]] && { dnf -qy install jq;[[ $? -ne 0 ]] && display_error "Cannot install jq"; }
 get_ocp_domain
+get_network_architecture
+[[ $dhcp_relay == 'Y' ]] && get_subnets
 get_bastion_info
 msg "Collecting data about bootstrap node (IP and MAC addres, name)" 7
 get_nodes_info 1 "boot"

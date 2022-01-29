@@ -1879,10 +1879,10 @@ function get_network_architecture {
 	msg "It is also recommended to place the bastion outside the subnets used by the cluster" 8
 	msg "If you cannot setup DHCP relay in your network, all cluster nodes and bastion must be located in this same subnet (DHCP broadcast network)" 8
 	while $(check_input "yn" "$dhcp_relay")
-                do
-                        get_input "yn"  "Would you like to place the cluster nodes in one subnet?: " && echo true || echo false)
-                        dhcp_relay=${input_variable^^}
-                done
+        do
+                get_input "yn"  "Would you like to place the cluster nodes in one subnet?: " true
+                dhcp_relay=${input_variable^^}
+        done
         done
         save_variable GI_DHCP_RELAY $dhcp_relay
 }

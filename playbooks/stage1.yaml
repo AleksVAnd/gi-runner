@@ -1,8 +1,7 @@
-
-- name: Add lines to dnsmasq.conf for one subnet installation
+- name: Add dhcp ranges to dnsmasq.conf for multiple subnets installation
   lineinfile:
     path: /etc/dnsmasq.conf
-    line: "dhcp-option=vlan{{ ansible_loop.index }},3,{{ item }}"
+    line: "dhcp-range=vlan{{ ansible_loop.index }},{{ item | map('regexp_replace','-',',') }},12h"
   with_items: "{{ gateways_list }}"
   loop_control:
     extended: yes
@@ -521,16 +520,27 @@
     - "dhcp-userclass=set:ipxe,iPXE"
     - "dhcp-boot=tag:ipxe,http://matchbox.{{ domain }}:8080/boot.ipxe"
 
-- name: Add lines to dnsmasq.conf for one subnet installation
+- name: Add gateways to dnsmasq.conf for multiple subnets installation
   lineinfile:
     path: /etc/dnsmasq.conf
     line: "dhcp-option=vlan{{ ansible_loop.index }},3,{{ item }}"
-  with_items: "gateways_list"
+  with_items: "{{ gateways_list }}"
+  loop_control:
+    extended: yes
+  when: one_subnet == 'N'
+
+- name: Add dhcp ranges to dnsmasq.conf for multiple subnets installation
+  lineinfile:
+    path: /etc/dnsmasq.conf
+    line: "dhcp-range=vlan{{ ansible_loop.index }},{{ item | map('regexp_replace','-',',') }},12h"
+  with_items: "{{ gateways_list }}"
+  loop_control:
+    extended: yes
   when: one_subnet == 'N'
 
 - meta: end_play
 
-- name: Add igateways to dnsmasq.conf for multi subnets installation
+- name: Add lines to dnsmasq.conf for one subnet installation
   lineinfile:
     path: /etc/dnsmasq.conf
     line: "{{ item }}"

@@ -60,6 +60,8 @@
     dest: "{{ temp_dir }}/olm/local-storage-vol.yaml"
   when: is_master_only == 'N' and is_ocs_tainted == 'Y'
 
+- debug:
+    msg: master_name
 - name: Configure local storage deployment file with masters only
   vars:
     nodes: "{{ master_name|list }}"

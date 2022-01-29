@@ -500,6 +500,28 @@ function check_input() {
                                 echo $result
                         fi
                         ;;
+		"ip_range")
+			local rlist
+			local ip_value
+			local is_wrong
+			if [ "$2" ]
+			then
+				if [[ "$2" =~ ^.*-.*$ ]] 
+				then
+					is_wrong=false
+					IFS='-' read -r -a rlist <<< "$2"
+					for ip_value in ${rlist[@]}
+					do
+						$(check_input "ip" $ip_value) && is_wrong=true 
+					done
+					echo $is_wrong
+				else
+					echo true
+				fi
+			else
+				echo true
+			fi
+			;;
 		*)
 			display_error "Error incorrect check_input type"
 	esac
@@ -1888,8 +1910,8 @@ function get_network_architecture {
 
 function get_subnets {
 	local i
-	local l_gtw
 	local gtws=()
+	local ip_ranges=()
 	msg "Collecting OCP cluster subnets" 7
 	msg "Number of subnets used by cluster (do not include subnet where bastion is located)" 8
 	while $(check_input "int" ${number_dhcp_subnets} 0 10)
@@ -1908,8 +1930,16 @@ function get_subnets {
                 	l_gtw=${input_variable}
         	done
 		gtws+=($l_gtw)
+		unset l_range
+		while $(check_input "ip_range" ${l_range})
+                do
+                        get_input "txt" "Insert IP address range to serve by bastion DHCP server for vlan#${i}: " false
+                        l_range=${input_variable}
+                done
+		ip_ranges+=($l_range)
 	done
-	echo ${gtws[*]// /,}
+	echo ${gtws[*]}|tr " " ","
+	echo ${ip_ranges[*]}|tr " " ","
 	
 }
 

@@ -1909,7 +1909,7 @@ function get_subnets {
         	done
 		gtws+=($l_gtw)
 	done
-	echo ${gtws[@]}
+	echo ${gtws[*]// /,}
 	
 }
 

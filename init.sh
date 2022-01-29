@@ -1883,7 +1883,6 @@ function get_network_architecture {
                 get_input "yn"  "Would you like to place the cluster nodes in one subnet?: " true
                 dhcp_relay=${input_variable^^}
         done
-        done
         save_variable GI_DHCP_RELAY $dhcp_relay
 }
 

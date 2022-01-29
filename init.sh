@@ -1907,7 +1907,7 @@ function get_subnets {
                        	get_input "txt" "Insert default gateway of vlan#${i}: " false
                 	l_gtw=${input_variable}
         	done
-		gtws+=(l_gtw)
+		gtws+=($l_gtw)
 	done
 	echo ${gtws[@]}
 	

@@ -4,6 +4,8 @@
     path: /etc/dnsmasq.conf
     line: "dhcp-option=vlan,3,{{ item }}"
   with_items: "{{ gateways_list }}"
+  loop_control:
+    extended: yes
   when: one_subnet == 'N'
 
 - meta: end_play

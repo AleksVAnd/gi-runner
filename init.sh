@@ -1878,12 +1878,12 @@ function get_network_architecture {
 	msg "If you plan to place individual nodes in separate subnets it is necessary to ensure that DHCP requests are forwarded to the bastion ($bastion_ip) using DHCP relay" 8
 	msg "It is also recommended to place the bastion outside the subnets used by the cluster" 8
 	msg "If you cannot setup DHCP relay in your network, all cluster nodes and bastion must be located in this same subnet (DHCP broadcast network)" 8
-	while $(check_input "yn" "$dhcp_relay")
+	while $(check_input "yn" "$one_subnet")
         do
                 get_input "yn"  "Would you like to place the cluster nodes in one subnet?: " false
-                dhcp_relay=${input_variable^^}
+                one_subnet=${input_variable^^}
         done
-        save_variable GI_DHCP_RELAY $dhcp_relay
+        save_variable GI_ONE_SUBNET $one_subnet
 }
 
 function get_subnets {
@@ -1914,7 +1914,7 @@ function get_subnets {
 #MAIN PART
 echo "#gi-runner configuration file" > $file
 get_network_architecture
-[[ $dhcp_relay == 'Y' ]] && get_subnets
+[[ $one_subnet == 'Y' ]] && get_subnets
 msg "This script must be executed from gi-runner home directory" 8
 msg "Checking OS release" 7
 save_variable KUBECONFIG "$GI_HOME/ocp/auth/kubeconfig"

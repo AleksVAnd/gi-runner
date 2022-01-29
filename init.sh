@@ -1938,8 +1938,8 @@ function get_subnets {
                 done
 		ip_ranges+=($l_range)
 	done
-	save_variable GI_SUBNETS_GATEWAYS { ${gtws[*]}|tr " " "," }
-	save_variable GI_SUBNETS_IP_RANGES { ${ip_ranges[*]}|tr " " "," }
+	save_variable GI_SUBNETS_GATEWAYS `echo ${gtws[*]}|tr " " ","`
+	#save_variable GI_SUBNETS_IP_RANGES { ${ip_ranges[*]}|tr " " "," }
 }
 
 #MAIN PART

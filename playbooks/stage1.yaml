@@ -1,14 +1,3 @@
-- name: Add dhcp ranges to dnsmasq.conf for multiple subnets installation
-  lineinfile:
-    path: /etc/dnsmasq.conf
-    line: "dhcp-range=vlan{{ ansible_loop.index }},{{ item | replace('-',',') }},12h"
-  with_items: "{{ dhcp_ranges_list }}"
-  loop_control:
-    extended: yes
-  when: one_subnet == 'N'
-
-- meta: end_play
-
 - name: Add igateways to dnsmasq.conf for multi subnets installation
   lineinfile:
 - name: Create temp subdirectories
@@ -532,13 +521,11 @@
 - name: Add dhcp ranges to dnsmasq.conf for multiple subnets installation
   lineinfile:
     path: /etc/dnsmasq.conf
-    line: "dhcp-range=vlan{{ ansible_loop.index }},{{ item | map('regexp_replace','-',',') }},12h"
-  with_items: "{{ gateways_list }}"
+    line: "dhcp-range=vlan{{ ansible_loop.index }},{{ item | replace('-',',') }},12h"
+  with_items: "{{ dhcp_ranges_list }}"
   loop_control:
     extended: yes
   when: one_subnet == 'N'
-
-- meta: end_play
 
 - name: Add lines to dnsmasq.conf for one subnet installation
   lineinfile:

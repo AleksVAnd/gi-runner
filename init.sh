@@ -1965,7 +1965,7 @@ msg "Installing tools for init.sh" 7
 [[ "$use_air_gap" == 'N' ]] && { dnf -qy install jq;[[ $? -ne 0 ]] && display_error "Cannot install jq"; }
 get_ocp_domain
 get_network_architecture
-[[ $dhcp_relay == 'N' ]] && get_subnets
+[[ $one_subnet == 'N' ]] && get_subnets
 get_bastion_info
 msg "Collecting data about bootstrap node (IP and MAC addres, name)" 7
 get_nodes_info 1 "boot"

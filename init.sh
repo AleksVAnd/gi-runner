@@ -1927,7 +1927,6 @@ function get_subnets {
 	        get_input "txt" "Insert number of subnets used by cluster nodes: " false
         	number_dhcp_subnets=${input_variable}
         done
-	echo $number_dhcp_subnets
 	msg "For each subnet you must provide the IP address range to serve by DHCP server on bastion and subnet default gateway" 8
 	for i in $(seq 1 $number_dhcp_subnets)
 	do

@@ -688,6 +688,11 @@
     cmd: "cat {{ temp_dir }}/os/pull_secret.tmp >> ../ocp/install-config.yaml"
   when: internet_type != 'A'
 
+- name: Copy install-config for troubleshooting
+  copy:
+    src: "../ocp/install-config.yaml"
+    dest: "{{ temp_dir }}/coreos/install-config.yaml"
+
 - name: Create manifests files
   command:
     cmd: "{{ item.cmd }}"

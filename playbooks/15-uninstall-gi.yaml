@@ -53,11 +53,11 @@
 
   - name: Uninstall GI operator
     shell:
-      cmd: "cloudctl case launch --case ../gi-temp/{{ offline_inventory }}/{{ gi_case_archive }} --namespace {{ gi_namespace }} --inventory {{ gi_case_inventory_setup }} --action uninstallOperator --tolerance 1"
+      cmd: "cloudctl case launch --case ../gi-temp/gi_arch/{{ offline_inventory }}/{{ gi_case_archive }} --namespace {{ gi_namespace }} --inventory {{ gi_case_inventory_setup }} --action uninstallOperator --tolerance 1"
 
   - name: Uninstall GI catalog #generates error til 3.0.2 should be corrected in 3.1
     shell:
-      cmd: "cloudctl case launch --case ../gi-temp/{{ offline_inventory }}/{{ gi_case_archive }} --namespace openshift-marketplace --inventory {{ gi_case_inventory_setup }} --action uninstallCatalog --tolerance 1"
+      cmd: "cloudctl case launch --case ../gi-temp/gi_arch/{{ offline_inventory }}/{{ gi_case_archive }} --namespace openshift-marketplace --inventory {{ gi_case_inventory_setup }} --action uninstallCatalog --tolerance 1"
 
   - name: Delete GI namespace
     shell:

@@ -1610,6 +1610,7 @@ function validate_certs() {
 }
 
 function get_gi_options() {
+	local change_ssh_host
 	msg "Collecting Guardium Insights parameters" 7
         msg "Guardium Insights deployment requires some decisions such as storage size, functions enabled" 8
         while $(check_input "txt" "${gi_namespace}" 3 10)
@@ -1640,6 +1641,40 @@ function get_gi_options() {
 
         fi
         get_gi_pvc_size
+	msg "GDP integration" 7
+	msg "One of the method to send events to Guardium is integration with Guardium Data Protection" 8
+	msg "In this case the selected collectors will transfer to GI audited events by copying datamarts to GI ssh service" 8
+	msg "As a default the collector sends data to cluster proxy on bastion using random port range 30000-32768" 8
+        while $(check_input "yn" "$change_ssh_host" false)
+        do
+	        get_input "yn" "Would you like to send datamarts using another proxy server?: " false
+                change_ssh_host=${input_variable^^}
+        done
+	if [[ $change_ssh_host == 'Y' ]]
+	then
+		while $(check_input "ip" $ssh_host)
+		do
+			get_input "txt" "Insert IP address of Load Balancer to which datamarts should be redirected: " false
+			ssh_host=${input_variable}
+		done
+	       	save_variable GI_SSH_HOST $ssh_host
+        fi
+	msg "You can define static port on load balancer to send datamarts" 8
+	msg "ssh port change is managed automatically on HA Proxy on bastion, in case of use the separate appliance you must provide the port defined on it" 8
+        while $(check_input "yn" "$change_ssh_port" false)
+        do
+                get_input "yn" "Would you like to set ssh port used to send datamarts?: " false
+                change_ssh_port=${input_variable^^}
+        done
+        if [[ $change_ssh_port == 'Y' ]]
+        then
+                while $(check_input "int" $ssh_port 1024 65635)
+                do
+                        get_input "txt" "Insert port number used on Load Balancer to transfer datamarts to GI: " false
+                        ssh_port=${input_variable}
+                done
+                save_variable GI_SSH_PORT $ssh_port
+        fi
 }
 
 function pvc_sizes() {

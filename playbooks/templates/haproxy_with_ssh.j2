@@ -1,5 +1,9 @@
 frontend ssh
+{% if gi_ssh_host == '0.0.0.0' and gi_ssh_port|int != 0 %}
+ bind *:{{ gi_ssh_port }}
+{% else %}
  bind *:{{ ssh_node_port.stdout }}
+{% endif %}
  default_backend ssh
  mode tcp
  option tcplog
@@ -7,5 +11,9 @@ backend ssh
  balance source
  mode tcp
 {% for name, ip in workers %}
+{% if gi_ssh_host == '0.0.0.0' and gi_ssh_port|int != 0 %}
+ server {{ name }} {{ ip }}:{{ gi_ssh_port }} check
+{% else %}
  server {{ name }} {{ ip }}:{{ ssh_node_port.stdout }} check
+{% endif %}
 {% endfor %}

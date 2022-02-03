@@ -11,10 +11,6 @@ backend ssh
  balance source
  mode tcp
 {% for name, ip in masters %}
-{% if gi_ssh_host == '0.0.0.0' and gi_ssh_port|int != 0 %}
- server {{ name }} {{ ip }}:{{ gi_ssh_port }} check
-{% else %}
  server {{ name }} {{ ip }}:{{ ssh_node_port.stdout }} check
-{% endif %}
 {% endfor %}
 

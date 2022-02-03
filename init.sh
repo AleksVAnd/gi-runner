@@ -1658,6 +1658,8 @@ function get_gi_options() {
 			ssh_host=${input_variable}
 		done
 	       	save_variable GI_SSH_HOST $ssh_host
+	else
+		save_variable GI_SSH_HOST "0.0.0.0"
         fi
 	msg "You can define static port on load balancer to send datamarts" 8
 	msg "ssh port change is managed automatically on HA Proxy on bastion, in case of use the separate appliance you must provide the port defined on it" 8
@@ -1674,6 +1676,8 @@ function get_gi_options() {
                         ssh_port=${input_variable}
                 done
                 save_variable GI_SSH_PORT $ssh_port
+	else
+		save_variable GI_SSH_PORT "0"
         fi
 }
 

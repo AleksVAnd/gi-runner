@@ -1665,14 +1665,14 @@ function get_gi_options() {
 	msg "ssh port change is managed automatically on HA Proxy on bastion, in case of use the separate appliance you must provide the port defined on it" 8
         while $(check_input "yn" "$change_ssh_port" false)
         do
-                get_input "yn" "Would you like to set ssh port used to send datamarts?: " false
+                get_input "yn" "Would you like to set ssh port used to send datamarts?: " true
                 change_ssh_port=${input_variable^^}
         done
         if [[ $change_ssh_port == 'Y' ]]
         then
                 while $(check_input "int" $ssh_port 1024 65635)
                 do
-                        get_input "txt" "Insert port number used on Load Balancer to transfer datamarts to GI: " false
+                        get_input "txt" "Insert port number used on Load Balancer to transfer datamarts to GI: " true
                         ssh_port=${input_variable}
                 done
                 save_variable GI_SSH_PORT $ssh_port

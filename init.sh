@@ -738,14 +738,21 @@ function get_software_architecture() {
                 is_master_only=${input_variable^^}
         done
         save_variable GI_MASTER_ONLY $is_master_only
-        msg "Decide what kind of cluster storage option will be implemented:" 8
-        msg "- OpenShift Container Storage - commercial rook-ceph branch from RedHat" 8
-        msg "- Rook-Ceph - opensource cluster storage option" 8
-        while $(check_input "sto" ${storage_type})
-        do
-                get_input "sto" "Choice the cluster storage type? (O)CS/(\e[4mR\e[0m)ook: " true
-                storage_type=${input_variable^^}
-        done
+	if [[ $ocp_major_version == 0 ]]
+	then
+		msg "New Rook-Ceph releases do not support OCP 4.6" 8
+		msg "You must install OCS" 8
+		storage_type="O"
+	else
+	        msg "Decide what kind of cluster storage option will be implemented:" 8
+       		msg "- OpenShift Container Storage - commercial rook-ceph branch from RedHat" 8
+        	msg "- Rook-Ceph - opensource cluster storage option" 8
+        	while $(check_input "sto" ${storage_type})
+        	do
+                	get_input "sto" "Choice the cluster storage type? (O)CS/(\e[4mR\e[0m)ook: " true
+                	storage_type=${input_variable^^}
+        	done
+	fi
         save_variable GI_STORAGE_TYPE $storage_type
         if [[ $storage_type == "O" && $is_master_only == 'N' ]]
         then

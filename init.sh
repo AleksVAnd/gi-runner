@@ -1279,8 +1279,8 @@ function get_service_assignment() {
                                 ics_nodes=${input_variable}
                         done
                 fi
+        	save_variable GI_ICS_NODES "$ics_nodes"
         fi
-        save_variable GI_ICS_NODES "$ics_nodes"
         if [ "$gi_install" == 'Y' ]
         then
                 IFS=',' read -r -a worker_arr <<< "$worker_name"
@@ -1323,8 +1323,8 @@ function get_service_assignment() {
                                 gi_nodes=${input_variable}
                         done
                 fi
+		save_variable GI_GI_NODES "${db2_nodes},$gi_nodes"
         fi
-	save_variable GI_GI_NODES "${db2_nodes},$gi_nodes"
 }
 
 function get_cluster_storage_info() {

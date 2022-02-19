@@ -738,9 +738,9 @@ function get_software_architecture() {
                 is_master_only=${input_variable^^}
         done
         save_variable GI_MASTER_ONLY $is_master_only
-	if [[ $ocp_major_version == 0 ]]
+	if [[ $ocp_major_version -lt 2 ]]
 	then
-		msg "New Rook-Ceph releases do not support OCP 4.6" 8
+		msg "New Rook-Ceph releases do not support OCP 4.6 and 4.7" 8
 		msg "You must install OCS" 8
 		storage_type="O"
 	else

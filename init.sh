@@ -1654,7 +1654,7 @@ function get_gi_options() {
 	msg "As a default the collector sends data to cluster proxy on bastion using random port range 30000-32768" 8
         while $(check_input "yn" "$change_ssh_host" false)
         do
-	        get_input "yn" "Would you like to send datamarts using another proxy server?: " false
+	        get_input "yn" "Would you like to send datamarts using another proxy server?: " true
                 change_ssh_host=${input_variable^^}
         done
 	if [[ $change_ssh_host == 'Y' ]]

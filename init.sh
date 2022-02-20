@@ -1322,8 +1322,10 @@ function get_service_assignment() {
                                 fi
                                 gi_nodes=${input_variable}
                         done
+			save_variable GI_GI_NODES "${db2_nodes},$gi_nodes"
+		else
+			save_variable GI_GI_NODES ""
                 fi
-		save_variable GI_GI_NODES "${db2_nodes},$gi_nodes"
         fi
 }
 

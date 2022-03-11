@@ -2,8 +2,8 @@
 set -e
 trap "exit 1" ERR
 
-source scripts/init.globals.sh
-source scripts/shared_functions.sh
+source ../scripts/init.globals.sh
+source ../scripts/shared_functions.sh
 
 get_pre_scripts_variables
 pre_scripts_init
